@@ -7,8 +7,9 @@ interface ButtonProps {
   startIcon?: ReactNode; // Icon before the text
   endIcon?: ReactNode; // Icon after the text
   onClick?: () => void; // Click handler
-  disabled?: boolean; // Disabled state
   className?: string; // Disabled state
+  disabled?: boolean; // Disabled state
+  type?: "button" | "submit" | "reset"; // Button type
 }
 
 const Button: React.FC<ButtonProps> = ({
