@@ -31,15 +31,40 @@ export const categoryService = {
     });
   },
 
+  getUpdateEndpoint() {
+    // Use the correct endpoint that worked
+    return `${API_BASE_URL}/Update`;
+  },
+
   async updateCategory(id: number, formData: FormData) {
-    return axios.put<ApiResponse>(`${API_BASE_URL}/${id}`, formData, {
+    // Make sure the ID is included in the form data
+    formData.append('Id', id.toString());
+
+    // Get the correct endpoint
+    const endpoint = this.getUpdateEndpoint();
+    console.log('Using update endpoint:', endpoint);
+
+    // Use the approach that worked (PUT with multipart/form-data)
+    return axios.put<ApiResponse>(endpoint, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   },
 
+  getDeleteEndpoint() {
+    // Return the correct endpoint for delete
+    return `${API_BASE_URL}/Delete`;
+  },
+
   async deleteCategory(id: number) {
-    return axios.delete<ApiResponse>(`${API_BASE_URL}/${id}`);
+    // Use the correct endpoint and approach that worked
+    const endpoint = this.getDeleteEndpoint();
+    console.log(`Deleting category with ID ${id} from ${endpoint}`);
+
+    // Send DELETE request with ID in the request body
+    return axios.delete<ApiResponse>(endpoint, {
+      data: { id: id }
+    });
   }
 };
