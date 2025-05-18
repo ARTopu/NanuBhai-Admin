@@ -749,11 +749,11 @@ export default function ProductList() {
           </div>
         </div>
       </Modal>
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="max-w-full overflow-x-auto">
           <div className="min-w-[1102px]">
             <Table>
-              <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+              <TableHeader className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                 <TableRow>
                   <TableCell
                     isHeader
@@ -788,9 +788,9 @@ export default function ProductList() {
                 </TableRow>
               </TableHeader>
 
-              <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+              <TableBody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {currentProducts.map((product) => (
-                  <TableRow key={product.id}>
+                  <TableRow key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 h-[72px]">
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 overflow-hidden rounded-full">
@@ -803,19 +803,19 @@ export default function ProductList() {
                           />
                         </div>
                         <div>
-                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white">
                             {product.product.name}
                           </span>
-                          <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                          <span className="block text-gray-500 text-theme-xs dark:text-gray-300">
                             {product.product.productId}
                           </span>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3 text-gray-700 text-start text-theme-sm dark:text-gray-300">
                       {product.category}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3 text-gray-700 text-start text-theme-sm dark:text-gray-300">
                       <Badge
                         size="sm"
                         color={
@@ -831,10 +831,10 @@ export default function ProductList() {
                           : `${product.stock} in Stock`}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300">
                       {product.price}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3 text-gray-700 text-start text-theme-sm dark:text-gray-300">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(product)}

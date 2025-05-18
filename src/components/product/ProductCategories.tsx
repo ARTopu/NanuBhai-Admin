@@ -546,32 +546,36 @@ export default function ProductCategories() {
 
         {/* Categories Table */}
         <div className="mt-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="overflow-x-auto bg-white dark:bg-gray-900 rounded-lg shadow-sm">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Image</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th className="px-5 py-3 text-start font-medium text-gray-500 text-theme-xs dark:text-gray-400 uppercase">Image</th>
+                  <th className="px-5 py-3 text-start font-medium text-gray-500 text-theme-xs dark:text-gray-400 uppercase">Name</th>
+                  <th className="px-5 py-3 text-start font-medium text-gray-500 text-theme-xs dark:text-gray-400 uppercase">Description</th>
+                  <th className="px-5 py-3 text-start font-medium text-gray-500 text-theme-xs dark:text-gray-400 uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+              <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                 {categories.map((category) => (
-                  <tr key={category.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="relative w-16 h-16">
+                  <tr key={category.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 h-[72px]">
+                    <td className="px-5 py-4 sm:px-6 text-start">
+                      <div className="w-10 h-10 overflow-hidden rounded-full">
                         <Image
+                          width={40}
+                          height={40}
                           src={category.imageUrl ? `https://localhost:7293/${category.imageUrl}` : DEFAULT_IMAGE}
                           alt={category.name}
-                          fill
-                          className="object-cover rounded-lg"
+                          priority={true}
+                          className="object-cover"
                         />
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{category.name}</td>
-                    <td className="px-6 py-4">{category.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-5 py-4 sm:px-6 text-start">
+                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white">{category.name}</span>
+                    </td>
+                    <td className="px-5 py-4 sm:px-6 text-start text-gray-700 text-theme-sm dark:text-gray-300">{category.description}</td>
+                    <td className="px-5 py-4 sm:px-6 text-start">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(category)}
