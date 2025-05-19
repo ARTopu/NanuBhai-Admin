@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -17,26 +17,42 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
+import { productService } from "@/services/productService";
+import { categoryService } from "@/services/categoryService";
 
+// Define interfaces for the API response
 interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  previousPrice: number | null;
+  discountPercentage: number;
+  savedAmount: number;
+  quantity: number;
+  stockStatus: "inStock" | "outOfStock";
+  freeDelivery: "yes" | "no";
+  categoryId: string;
+  imageUrl: string;
+  images: string[];
+}
+
+interface Category {
   id: number;
-  product: {
-    image: string;
-    name: string;
-    productId: string;
-  };
-  category: string;
-  price: string;
-  stock: number;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
 }
 
 interface EditFormState {
   name: string;
-  productId: string;
-  category: string;
-  price: string;
-  stock: number;
-  image: string;
+  description: string;
+  price: number;
+  previousPrice: number | null;
+  quantity: number;
+  stockStatus: string;
+  freeDelivery: string;
+  categoryId: string;
 }
 
 const categoryOptions = [
@@ -552,35 +568,215 @@ const tableData: Product[] = [
   },
 ];
 
+// Constants
+const ITEMS_PER_PAGE = 15; // Number of products to show per page
+
 export default function ProductList() {
+  // State for products and categories
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State for editing
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditFormState>({
     name: "",
-    productId: "",
-    category: "",
-    price: "",
-    stock: 0,
-    image: ""
+    description: "",
+    price: 0,
+    previousPrice: null,
+    quantity: 0,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "",
   });
+
   const [imagePreview, setImagePreview] = useState("");
   const { isOpen, openModal, closeModal } = useModal();
   const { isOpen: isDeleteModalOpen, openModal: openDeleteModal, closeModal: closeDeleteModal } = useModal();
-  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Fetch products and categories on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Check backend connection first
+        const isBackendConnected = await checkBackendConnection();
+        if (!isBackendConnected) {
+          setError("Cannot connect to the backend server. Please make sure your backend server is running at http://localhost:4000. Check the browser console for more details on connection attempts.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch products with a timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        console.log(`Fetching products at ${new Date().toLocaleTimeString()}...`);
+
+        const productsResponse = await productService.getProducts(`?_t=${timestamp}`);
+        console.log('Products API Response:', productsResponse.data);
+
+        if (productsResponse.data && productsResponse.data.succeeded) {
+          console.log(`Received ${productsResponse.data.data.length} products`);
+
+          // Log the first product to see its structure
+          if (productsResponse.data.data.length > 0) {
+            console.log('First product data:', JSON.stringify(productsResponse.data.data[0], null, 2));
+
+            // Log image information specifically
+            const firstProduct = productsResponse.data.data[0];
+            console.log('Product image info:', {
+              imageUrl: firstProduct.imageUrl,
+              imageUrlType: typeof firstProduct.imageUrl,
+              images: firstProduct.images,
+              imagesType: typeof firstProduct.images,
+              isImagesArray: Array.isArray(firstProduct.images),
+              formattedImageUrl: getProductImage(firstProduct)
+            });
+
+            // Check all products for image issues
+            console.log('Checking all products for image issues...');
+            productsResponse.data.data.forEach((product, index) => {
+              if (!product.imageUrl && (!product.images || !Array.isArray(product.images) || product.images.length === 0)) {
+                console.warn(`Product #${index + 1} (${product.name}) has no images`);
+              }
+              if (product.images && !Array.isArray(product.images)) {
+                console.error(`Product #${index + 1} (${product.name}) has images property that is not an array:`, product.images);
+              }
+            });
+          }
+
+          setProducts(productsResponse.data.data);
+
+
+
+          // Calculate total pages based on the number of products and items per page
+          const calculatedPages = Math.ceil(productsResponse.data.data.length / ITEMS_PER_PAGE);
+          console.log(`Calculated ${calculatedPages} total pages based on ${productsResponse.data.data.length} products and ${ITEMS_PER_PAGE} items per page`);
+
+          // Ensure we have at least 1 page, and at most 3 pages (to match the UI)
+          const finalPages = Math.min(Math.max(calculatedPages, 1), 3);
+          setTotalPages(finalPages);
+          setCurrentPage(1); // Reset to first page when data is refreshed
+        } else {
+          console.error('Failed to fetch products:', productsResponse.data?.message);
+          setError("Failed to fetch products: " + (productsResponse.data?.message || 'Unknown error'));
+        }
+
+        // Fetch categories
+        console.log('Fetching categories...');
+        const categoriesResponse = await categoryService.getCategories();
+
+        if (categoriesResponse.data && categoriesResponse.data.succeeded) {
+          console.log(`Received ${categoriesResponse.data.data.length} categories`);
+          setCategories(categoriesResponse.data.data);
+        } else {
+          console.error('Failed to fetch categories:', categoriesResponse.data?.message);
+        }
+      } catch (err: any) {
+        console.error("Error fetching data:", err);
+        setError("An error occurred while fetching data: " + (err.message || 'Unknown error'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+
+    // Add a refresh interval (optional - remove if not needed)
+    // const refreshInterval = setInterval(fetchData, 60000); // Refresh every minute
+
+    // return () => {
+    //   clearInterval(refreshInterval);
+    // };
+  }, []);
+
+  // Get category name by ID
+  const getCategoryName = (categoryId: string): string => {
+    const category = categories.find(cat => cat.id.toString() === categoryId);
+    return category ? category.name : "Unknown Category";
+  };
+
+  // Default image path
+  const DEFAULT_IMAGE = "/images/product/product-default.png";
+
+  // Get image URL for product - simplified to match category list approach
+  const getProductImage = (product: Product | null | undefined): string => {
+    // Check if product is valid
+    if (!product) {
+      console.warn('Invalid product object:', product);
+      return DEFAULT_IMAGE;
+    }
+
+    console.log('Getting image for product:', product.name);
+
+    // If there's an image in the images array, use the first one
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      console.log('Using first image from images array:', product.images[0]);
+      return getImageUrl(product.images[0]);
+    }
+
+    // Otherwise use the imageUrl if available
+    if (product.imageUrl) {
+      console.log('Using imageUrl property:', product.imageUrl);
+      return getImageUrl(product.imageUrl);
+    }
+
+    // Default image if none available
+    console.log('No image found, using default');
+    return DEFAULT_IMAGE;
+  };
+
+  // Utility function to get the correct image URL - same as in category list
+  const getImageUrl = (imageUrl: any): string => {
+    console.log('Processing image URL:', imageUrl, 'Type:', typeof imageUrl);
+
+    // Check if imageUrl is null, undefined, or not a string
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      console.warn('Invalid image URL:', imageUrl);
+      return DEFAULT_IMAGE;
+    }
+
+    // If the URL already includes http:// or https://, return it as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      console.log('URL already has http/https, using as is');
+      return imageUrl;
+    }
+
+    // If the URL starts with a slash, remove it
+    const cleanUrl = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+
+    // Otherwise, prepend the backend URL
+    const fullUrl = `http://localhost:4000/${cleanUrl}`;
+    console.log('Final formatted URL:', fullUrl);
+    return fullUrl;
+  };
+
+  // Handle edit button click
   const handleEdit = (product: Product) => {
-    console.log("Product being edited:", product); // For debugging
     setCurrentProduct(product);
     setEditForm({
-      name: product.product.name,
-      productId: product.product.productId,
-      category: product.category,
+      name: product.name,
+      description: product.description,
       price: product.price,
-      stock: product.stock,
-      image: product.product.image
+      previousPrice: product.previousPrice,
+      quantity: product.quantity,
+      stockStatus: product.stockStatus,
+      freeDelivery: product.freeDelivery,
+      categoryId: product.categoryId,
     });
-    setImagePreview(product.product.image);
+    // Set image preview using our getProductImage function
+    const imageUrl = getProductImage(product);
+    console.log('Setting image preview to:', imageUrl);
+    setImagePreview(imageUrl);
     openModal();
   };
 
@@ -621,54 +817,102 @@ export default function ProductList() {
   };
 
   const handleSave = async () => {
+    if (!currentProduct) return;
+
     try {
-      // Create form data if there's a new image
+      // Create form data
       const formData = new FormData();
+
+      // Add basic product information
+      formData.append('id', currentProduct.id);
+      formData.append('name', editForm.name);
+      formData.append('description', editForm.description);
+      formData.append('price', editForm.price.toString());
+      if (editForm.previousPrice) {
+        formData.append('previousPrice', editForm.previousPrice.toString());
+      }
+      formData.append('quantity', editForm.quantity.toString());
+      formData.append('stockStatus', editForm.stockStatus);
+      formData.append('freeDelivery', editForm.freeDelivery);
+      formData.append('categoryId', editForm.categoryId);
+
+      // Add image if selected
       if (selectedImage) {
         formData.append('image', selectedImage);
+        console.log("Adding image to form data:", selectedImage.name);
       }
 
-      // Add other form data
-      Object.keys(editForm).forEach(key => {
-        formData.append(key, editForm[key as keyof typeof editForm].toString());
-      });
+      // Show loading message
+      setIsLoading(true);
 
-      // Handle save logic here
-      console.log("Saving changes...", editForm);
-      console.log("New image:", selectedImage);
+      // Update product by calling the API
+      console.log("Saving changes to product ID:", currentProduct.id);
+
+      try {
+        const response = await productService.updateProduct(currentProduct.id, formData);
+        console.log("Update response:", response.data);
+
+        if (response.data && response.data.succeeded) {
+          alert("Product updated successfully!");
+
+          // Refresh the product list to show the updated data
+          await refreshData();
+        } else {
+          alert("Failed to update product: " + (response.data?.message || "Unknown error"));
+        }
+      } catch (apiError) {
+        console.error("API error:", apiError);
+        alert("Error updating product. See console for details.");
+      } finally {
+        setIsLoading(false);
+      }
 
       // Reset states
       setSelectedImage(null);
       closeModal();
+
     } catch (error) {
       console.error("Error saving product:", error);
+      setIsLoading(false);
     }
   };
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 15;
-
-  const handleDelete = (productId: number) => {
-    // Set the product ID to delete and open the confirmation modal
+  // Handle delete button click
+  const handleDelete = (productId: string) => {
     setProductToDelete(productId);
     openDeleteModal();
   };
 
+  // Confirm delete
   const confirmDelete = async () => {
     if (!productToDelete) return;
 
     try {
       setIsDeleting(true);
-      // Here you would call your API to delete the product
+
+      // Delete product by calling the API
       console.log("Deleting product:", productToDelete);
 
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const response = await productService.deleteProduct(productToDelete);
+        console.log("Delete response:", response.data);
 
-      // After successful deletion, you would typically refresh the product list
-      // For now, we'll just close the modal
+        if (response.data && response.data.succeeded) {
+          alert("Product deleted successfully!");
+
+          // Refresh the product list to show the updated data
+          await refreshData();
+        } else {
+          alert("Failed to delete product: " + (response.data?.message || "Unknown error"));
+        }
+      } catch (apiError) {
+        console.error("API error:", apiError);
+        alert("Error deleting product. See console for details.");
+      }
+
       closeDeleteModal();
       setProductToDelete(null);
+
     } catch (err) {
       console.error('Error deleting product:', err);
     } finally {
@@ -676,11 +920,480 @@ export default function ProductList() {
     }
   };
 
-  // Calculate pagination
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = tableData.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(tableData.length / productsPerPage);
+  // Function to check if the backend is accessible
+  const checkBackendConnection = async () => {
+    // List of endpoints to try
+    const endpoints = [
+      'http://localhost:4000/api/health',
+      'http://localhost:4000/api/Product/GetAll',
+      'http://localhost:4000/api/Category/GetAll',
+      'http://localhost:4000',
+      'http://127.0.0.1:4000/api/Product/GetAll'
+    ];
+
+    console.log('Checking backend connection...');
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying to connect to: ${endpoint}`);
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json, text/plain, */*' },
+          mode: 'cors',
+          cache: 'no-cache',
+          timeout: 5000
+        });
+
+        console.log(`Response from ${endpoint}:`, response.status);
+
+        if (response.ok) {
+          console.log(`Backend connection successful at ${endpoint}`);
+          return true;
+        } else {
+          console.warn(`Connection to ${endpoint} failed with status:`, response.status);
+        }
+      } catch (error) {
+        console.error(`Error connecting to ${endpoint}:`, error);
+      }
+    }
+
+    // If we get here, all connection attempts failed
+    console.error('All backend connection attempts failed');
+    return false;
+  };
+
+  // Use the constant for items per page
+  const itemsPerPage = ITEMS_PER_PAGE;
+
+  // Calculate pagination indices
+  const indexOfLastProduct = currentPage * itemsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - itemsPerPage;
+
+  // Get products for the current page only
+  const currentProducts = isLoading ? [] :
+    products.slice(indexOfFirstProduct, indexOfLastProduct);
+
+  // Log pagination info for debugging
+  console.log(`Showing products ${indexOfFirstProduct + 1} to ${Math.min(indexOfLastProduct, products.length)} of ${products.length} total`);
+  console.log(`Current page: ${currentPage}, Total pages: ${totalPages}`);
+
+  // Get stock status badge
+  const getStockStatusBadge = (product: Product) => {
+    if (product.stockStatus === "outOfStock") {
+      return (
+        <Badge variant="light" color="error">
+          Out of Stock
+        </Badge>
+      );
+    } else {
+      // In stock - check quantity
+      if (product.quantity < 10) {
+        return (
+          <Badge variant="light" color="warning">
+            {product.quantity} in Stock
+          </Badge>
+        );
+      } else {
+        return (
+          <Badge variant="light" color="success">
+            {product.quantity} in Stock
+          </Badge>
+        );
+      }
+    }
+  };
+
+  // Get free delivery badge
+  const getFreeDeliveryBadge = (freeDelivery: string) => {
+    if (freeDelivery === "yes") {
+      return (
+        <Badge variant="light" color="success">
+          Free Delivery
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="light" color="error">
+          Paid Delivery
+        </Badge>
+      );
+    }
+  };
+
+  // Function to manually refresh data
+  const refreshData = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Check backend connection first
+      const isBackendConnected = await checkBackendConnection();
+      if (!isBackendConnected) {
+        setError("Cannot connect to the backend server. Please make sure your backend server is running at http://localhost:4000. Check the browser console for more details on connection attempts.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch products with a timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      console.log(`Manually refreshing products at ${new Date().toLocaleTimeString()}...`);
+
+      const productsResponse = await productService.getProducts(`?_t=${timestamp}`);
+
+      if (productsResponse.data && productsResponse.data.succeeded) {
+        console.log(`Received ${productsResponse.data.data.length} products`);
+        setProducts(productsResponse.data.data);
+
+
+
+        // Calculate total pages based on the number of products and items per page
+        const calculatedPages = Math.ceil(productsResponse.data.data.length / ITEMS_PER_PAGE);
+
+        // Ensure we have at least 1 page, and at most 3 pages (to match the UI)
+        const finalPages = Math.min(Math.max(calculatedPages, 1), 3);
+        setTotalPages(finalPages);
+        setCurrentPage(1); // Reset to first page when data is refreshed
+
+        // Show success message (optional)
+        alert(`Successfully refreshed data. Found ${productsResponse.data.data.length} products.`);
+      } else {
+        setError("Failed to refresh products: " + (productsResponse.data?.message || 'Unknown error'));
+      }
+    } catch (err: any) {
+      console.error("Error refreshing data:", err);
+      setError("An error occurred while refreshing data: " + (err.message || 'Unknown error'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Loading and error states
+  if (isLoading) {
+    return (
+      <div className="p-8 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent mb-4"></div>
+        <p>Loading products...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    // Check if it's a backend connection error
+    const isConnectionError = error.includes("Cannot connect to the backend server");
+
+    return (
+      <div className="p-8 text-center">
+        <div className="text-red-500 mb-4 font-semibold text-lg">{error}</div>
+
+        {isConnectionError && (
+          <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-left max-w-2xl mx-auto">
+            <h3 className="font-medium mb-2 text-gray-800 dark:text-white">Troubleshooting Steps:</h3>
+            <ol className="list-decimal pl-5 space-y-2 text-gray-700 dark:text-gray-300">
+              <li>Make sure your backend server is running on port 4000</li>
+              <li>Check if there are any CORS issues in the browser console</li>
+              <li>Verify that the API endpoints are correct in your backend code</li>
+              <li>Try restarting your backend server</li>
+              <li>Check if your backend server logs show any errors</li>
+            </ol>
+
+            <div className="mt-4">
+              <h4 className="font-medium mb-2 text-gray-800 dark:text-white">Test API Endpoints:</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('http://localhost:4000/api/Product/GetAll');
+                      const data = await response.json();
+                      console.log('Product API Response:', data);
+                      alert(`Status: ${response.status}\nCheck console for full response`);
+                    } catch (err) {
+                      console.error('Error:', err);
+                      alert(`Error: ${err.message}`);
+                    }
+                  }}
+                  className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+                >
+                  Test Products API
+                </button>
+
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('http://localhost:4000/api/Category/GetAll');
+                      const data = await response.json();
+                      console.log('Category API Response:', data);
+                      alert(`Status: ${response.status}\nCheck console for full response`);
+                    } catch (err) {
+                      console.error('Error:', err);
+                      alert(`Error: ${err.message}`);
+                    }
+                  }}
+                  className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+                >
+                  Test Categories API
+                </button>
+
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('http://localhost:4000');
+                      alert(`Status: ${response.status}\nServer is reachable`);
+                    } catch (err) {
+                      console.error('Error:', err);
+                      alert(`Error: ${err.message}`);
+                    }
+                  }}
+                  className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+                >
+                  Test Server Root
+                </button>
+
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('http://127.0.0.1:4000/api/Product/GetAll');
+                      const data = await response.json();
+                      console.log('IP Address API Response:', data);
+                      alert(`Status: ${response.status}\nCheck console for full response`);
+                    } catch (err) {
+                      console.error('Error:', err);
+                      alert(`Error: ${err.message}`);
+                    }
+                  }}
+                  className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+                >
+                  Test with IP Address
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={refreshData}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Try Again
+          </button>
+
+          <button
+            onClick={async () => {
+              // Test connection using the product service's testConnection method
+              try {
+                const isConnected = await productService.testConnection();
+                if (isConnected) {
+                  alert('Backend connection successful! Try refreshing the data now.');
+                } else {
+                  alert('Backend connection failed. Please check that your backend server is running.');
+                }
+              } catch (err) {
+                console.error('Error testing connection:', err);
+                alert('Error testing connection. See console for details.');
+              }
+            }}
+            className="px-4 py-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            Test Connection
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                // Show loading message
+                alert('Fetching products... Check the console for the full response.');
+
+                // Make the API call with a timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                const response = await productService.getProducts(`?_t=${timestamp}`);
+
+                // Show a summary of the response
+                if (response.data && response.data.succeeded) {
+                  const products = response.data.data;
+                  const summary = `Successfully retrieved ${products.length} products.\n\n` +
+                    `First product:\n` +
+                    `- Name: ${products[0]?.name || 'N/A'}\n` +
+                    `- Price: ${products[0]?.price || 'N/A'}\n` +
+                    `- Image URL: ${products[0]?.imageUrl || 'N/A'}\n\n` +
+                    `Check the browser console for the complete response.`;
+
+                  alert(summary);
+                } else {
+                  alert(`API request failed: ${response.data?.message || 'Unknown error'}`);
+                }
+              } catch (err) {
+                console.error('Error fetching products:', err);
+                alert(`Error fetching products: ${err.message || 'Unknown error'}`);
+              }
+            }}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+          >
+            Show API Response
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                // Show loading message
+                alert('Testing image URLs... Check the console for results.');
+
+                // Make the API call with a timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                const response = await productService.getProducts(`?_t=${timestamp}`);
+
+                if (response.data && response.data.succeeded) {
+                  const products = response.data.data;
+
+                  // Create a div to display the images
+                  const testDiv = document.createElement('div');
+                  testDiv.style.position = 'fixed';
+                  testDiv.style.top = '20px';
+                  testDiv.style.right = '20px';
+                  testDiv.style.zIndex = '9999';
+                  testDiv.style.background = 'white';
+                  testDiv.style.padding = '10px';
+                  testDiv.style.border = '1px solid black';
+                  testDiv.style.borderRadius = '5px';
+                  testDiv.style.maxHeight = '80vh';
+                  testDiv.style.overflow = 'auto';
+                  testDiv.style.maxWidth = '300px';
+
+                  // Add a close button
+                  const closeButton = document.createElement('button');
+                  closeButton.textContent = 'Close';
+                  closeButton.style.marginBottom = '10px';
+                  closeButton.style.padding = '5px 10px';
+                  closeButton.style.background = 'red';
+                  closeButton.style.color = 'white';
+                  closeButton.style.border = 'none';
+                  closeButton.style.borderRadius = '3px';
+                  closeButton.onclick = () => document.body.removeChild(testDiv);
+                  testDiv.appendChild(closeButton);
+
+                  // Add a title
+                  const title = document.createElement('h3');
+                  title.textContent = 'Image URL Test';
+                  title.style.marginBottom = '10px';
+                  testDiv.appendChild(title);
+
+                  // Test the first 3 products
+                  const testProducts = products.slice(0, 3);
+
+                  testProducts.forEach((product, index) => {
+                    console.log(`Testing image for product ${index + 1}:`, product.name);
+
+                    // Create a container for this product
+                    const productDiv = document.createElement('div');
+                    productDiv.style.marginBottom = '15px';
+                    productDiv.style.padding = '10px';
+                    productDiv.style.border = '1px solid #ccc';
+                    productDiv.style.borderRadius = '3px';
+
+                    // Add product name
+                    const nameElem = document.createElement('p');
+                    nameElem.textContent = `${index + 1}. ${product.name}`;
+                    nameElem.style.fontWeight = 'bold';
+                    nameElem.style.marginBottom = '5px';
+                    productDiv.appendChild(nameElem);
+
+                    // Add image URL
+                    const urlElem = document.createElement('p');
+                    urlElem.textContent = `URL: ${product.imageUrl || 'N/A'}`;
+                    urlElem.style.fontSize = '12px';
+                    urlElem.style.wordBreak = 'break-all';
+                    urlElem.style.marginBottom = '5px';
+                    productDiv.appendChild(urlElem);
+
+                    // Test different image URL formats
+                    const urlFormats = [
+                      { label: 'Original', url: product.imageUrl },
+                      { label: 'With localhost', url: `http://localhost:4000/${product.imageUrl}` },
+                      { label: 'With IP', url: `http://127.0.0.1:4000/${product.imageUrl}` },
+                      { label: 'Cleaned path', url: product.imageUrl ? `http://localhost:4000/${product.imageUrl.replace(/^\//, '')}` : null }
+                    ];
+
+                    urlFormats.forEach(format => {
+                      if (!format.url) return;
+
+                      // Create a container for this format
+                      const formatDiv = document.createElement('div');
+                      formatDiv.style.marginBottom = '10px';
+
+                      // Add format label
+                      const formatLabel = document.createElement('p');
+                      formatLabel.textContent = format.label;
+                      formatLabel.style.fontSize = '12px';
+                      formatLabel.style.fontWeight = 'bold';
+                      formatDiv.appendChild(formatLabel);
+
+                      // Add image
+                      const img = document.createElement('img');
+                      img.src = format.url;
+                      img.alt = `${product.name} - ${format.label}`;
+                      img.style.width = '100%';
+                      img.style.height = 'auto';
+                      img.style.maxHeight = '100px';
+                      img.style.objectFit = 'contain';
+                      img.style.border = '1px solid #eee';
+                      img.style.borderRadius = '3px';
+                      img.style.marginBottom = '5px';
+
+                      // Add load/error handlers
+                      img.onload = () => {
+                        console.log(`Image loaded successfully: ${format.label} - ${format.url}`);
+                        img.style.border = '2px solid green';
+                      };
+                      img.onerror = () => {
+                        console.error(`Image failed to load: ${format.label} - ${format.url}`);
+                        img.style.border = '2px solid red';
+                        img.style.opacity = '0.5';
+                      };
+
+                      formatDiv.appendChild(img);
+                      productDiv.appendChild(formatDiv);
+                    });
+
+                    testDiv.appendChild(productDiv);
+                  });
+
+                  // Add the test div to the body
+                  document.body.appendChild(testDiv);
+
+                } else {
+                  alert(`API request failed: ${response.data?.message || 'Unknown error'}`);
+                }
+              } catch (err) {
+                console.error('Error testing image URLs:', err);
+                alert(`Error testing image URLs: ${err.message || 'Unknown error'}`);
+              }
+            }}
+            className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+          >
+            Test Image URLs
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <div className="p-8 text-center">
+        <p className="mb-4">No products found.</p>
+        <button
+          onClick={refreshData}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          Refresh Data
+        </button>
+      </div>
+    );
+  }
+  // Category options for the edit form
+  const categoryOptions = categories.map(category => ({
+    value: category.id.toString(),
+    label: category.name
+  }));
 
   return (
     <>
@@ -749,39 +1462,76 @@ export default function ProductList() {
           </div>
         </div>
       </Modal>
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="max-w-full overflow-x-auto">
-          <div className="min-w-[1102px]">
-            <Table>
+      {/* Simple header */}
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+          Product List
+        </h2>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="w-full">
+          <div className="w-full">
+            <Table className="w-full">
               <TableHeader className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                 <TableRow>
                   <TableCell
                     isHeader
-                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-[18%]"
                   >
                     Product
                   </TableCell>
                   <TableCell
                     isHeader
-                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-[22%]"
+                  >
+                    Description
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-[10%]"
                   >
                     Category
                   </TableCell>
                   <TableCell
                     isHeader
-                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                  >
-                    Stock
-                  </TableCell>
-                  <TableCell
-                    isHeader
-                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-[8%]"
                   >
                     Price
                   </TableCell>
                   <TableCell
                     isHeader
-                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-[8%]"
+                  >
+                    Previous Price
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-[8%]"
+                  >
+                    Discount
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-[8%]"
+                  >
+                    Saved Amount
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-[8%]"
+                  >
+                    Stock
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-[8%]"
+                  >
+                    Free Delivery
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-[8%]"
                   >
                     Actions
                   </TableCell>
@@ -791,54 +1541,81 @@ export default function ProductList() {
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {currentProducts.map((product) => (
                   <TableRow key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 h-[72px]">
-                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                    {/* Product Name with Image */}
+                    <TableCell className="px-5 py-4 sm:px-6 text-start w-[18%]">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 overflow-hidden rounded-full">
+                        <div className="w-10 h-10 overflow-hidden rounded-full flex-shrink-0">
                           <Image
                             width={40}
                             height={40}
-                            src={product.product.image}
-                            alt={product.product.name}
+                            src={getProductImage(product)}
+                            alt={product.name}
                             priority={true}
+                            className="object-cover w-full h-full"
+                            onError={(e) => {
+                              console.error('Error loading image for product:', product.name);
+                              // Fallback to default image on error
+                              (e.target as HTMLImageElement).src = DEFAULT_IMAGE;
+                            }}
                           />
                         </div>
-                        <div>
-                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white">
-                            {product.product.name}
-                          </span>
-                          <span className="block text-gray-500 text-theme-xs dark:text-gray-300">
-                            {product.product.productId}
+                        <div className="min-w-0 flex-1">
+                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white break-words">
+                            {product.name}
                           </span>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-700 text-start text-theme-sm dark:text-gray-300">
-                      {product.category}
+
+                    {/* Description */}
+                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300 w-[22%]">
+                      <div className="max-w-full line-clamp-2">
+                        {product.description}
+                      </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-700 text-start text-theme-sm dark:text-gray-300">
-                      <Badge
-                        size="sm"
-                        color={
-                          product.stock === 0
-                            ? "error"
-                            : product.stock > 10
-                            ? "success"
-                            : "warning"
-                        }
-                      >
-                        {product.stock === 0
-                          ? "Out of Stock"
-                          : `${product.stock} in Stock`}
-                      </Badge>
+
+                    {/* Category */}
+                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300 w-[10%]">
+                      {getCategoryName(product.categoryId)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300">
-                      {product.price}
+
+                    {/* Price */}
+                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300 w-[8%] text-right">
+                      ${product.price.toFixed(2)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-700 text-start text-theme-sm dark:text-gray-300">
-                      <div className="flex items-center gap-2">
+
+                    {/* Previous Price */}
+                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300 w-[10%] text-right">
+                      {product.previousPrice ? `$${product.previousPrice.toFixed(2)}` : '-'}
+                    </TableCell>
+
+                    {/* Discount Percentage */}
+                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300 w-[100px] text-center">
+                      {product.discountPercentage > 0 ? `${product.discountPercentage}%` : '-'}
+                    </TableCell>
+
+                    {/* Saved Amount */}
+                    <TableCell className="px-4 py-3 text-gray-700 text-theme-sm dark:text-gray-300 w-[120px] text-right">
+                      {product.savedAmount > 0 ? `$${product.savedAmount.toFixed(2)}` : '-'}
+                    </TableCell>
+
+                    {/* Stock Status */}
+                    <TableCell className="px-4 py-3 w-[120px] text-center">
+                      {getStockStatusBadge(product)}
+                    </TableCell>
+
+                    {/* Free Delivery */}
+                    <TableCell className="px-4 py-3 w-[120px] text-center">
+                      {getFreeDeliveryBadge(product.freeDelivery)}
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="px-4 py-3 text-gray-700 text-center text-theme-sm dark:text-gray-300 w-[100px]">
+                      <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleEdit(product)}
                           className="inline-flex items-center justify-center p-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg dark:hover:bg-blue-500/10"
+                          title="Edit"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -858,6 +1635,7 @@ export default function ProductList() {
                         <button
                           onClick={() => handleDelete(product.id)}
                           className="inline-flex items-center justify-center p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-red-500/10"
+                          title="Delete"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -883,6 +1661,7 @@ export default function ProductList() {
           </div>
         </div>
       </div>
+      {/* Pagination controls - restored to original */}
       <div className="mt-4 flex justify-center">
         <div className="flex items-center gap-2">
           <button
@@ -893,7 +1672,8 @@ export default function ProductList() {
             Previous
           </button>
 
-          {[1, 2, 3].map((pageNum) => (
+          {/* Original pagination buttons - only show up to totalPages */}
+          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => i + 1).map((pageNum) => (
             <button
               key={pageNum}
               onClick={() => setCurrentPage(pageNum)}
@@ -908,8 +1688,8 @@ export default function ProductList() {
           ))}
 
           <button
-            onClick={() => setCurrentPage(Math.min(3, currentPage + 1))}
-            disabled={currentPage === 3}
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
             className="px-4 py-2 border rounded-lg disabled:opacity-50 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-700"
           >
             Next
@@ -932,9 +1712,14 @@ export default function ProductList() {
             <Label>Product Image</Label>
             <div className="mt-2 flex flex-col items-center justify-center gap-3">
               <img
-                src={imagePreview || editForm.image}
+                src={imagePreview || (currentProduct ? getProductImage(currentProduct) : DEFAULT_IMAGE)}
                 alt={editForm.name}
                 className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                onError={(e) => {
+                  console.error('Error loading image in modal for product:', currentProduct?.name);
+                  // Fallback to default image on error
+                  (e.target as HTMLImageElement).src = DEFAULT_IMAGE;
+                }}
               />
               <label className="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 <span className="text-sm text-gray-600 dark:text-gray-300">Change Image</span>
@@ -961,11 +1746,11 @@ export default function ProductList() {
             </div>
 
             <div>
-              <Label>Product ID</Label>
+              <Label>Description</Label>
               <Input
                 type="text"
-                value={editForm.productId}
-                onChange={(e) => setEditForm({...editForm, productId: e.target.value})}
+                value={editForm.description}
+                onChange={(e) => setEditForm({...editForm, description: e.target.value})}
                 className="w-full"
               />
             </div>
@@ -974,11 +1759,11 @@ export default function ProductList() {
               <Label>Category</Label>
               <Select
                 options={categoryOptions}
-                value={editForm.category}
+                value={editForm.categoryId}
                 onChange={(value) =>
                   setEditForm({
                     ...editForm,
-                    category: value
+                    categoryId: value
                   })
                 }
                 placeholder="Select category"
@@ -986,24 +1771,102 @@ export default function ProductList() {
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Price</Label>
+                <Input
+                  type="number"
+                  value={editForm.price}
+                  onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value)})}
+                  className="w-full"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div>
+                <Label>Previous Price</Label>
+                <Input
+                  type="number"
+                  value={editForm.previousPrice || ''}
+                  onChange={(e) => setEditForm({...editForm, previousPrice: e.target.value ? parseFloat(e.target.value) : null})}
+                  className="w-full"
+                  min="0"
+                  step="0.01"
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+
             <div>
-              <Label>Price</Label>
+              <Label>Quantity</Label>
               <Input
-                type="text"
-                value={editForm.price}
-                onChange={(e) => setEditForm({...editForm, price: e.target.value})}
+                type="number"
+                value={editForm.quantity}
+                onChange={(e) => setEditForm({...editForm, quantity: parseInt(e.target.value)})}
                 className="w-full"
+                min="0"
               />
             </div>
 
             <div>
-              <Label>Stock</Label>
-              <Input
-                type="number"
-                value={editForm.stock}
-                onChange={(e) => setEditForm({...editForm, stock: parseInt(e.target.value)})}
-                className="w-full"
-              />
+              <Label>Stock Status</Label>
+              <div className="flex gap-4 mt-2">
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="inStock"
+                    name="stockStatus"
+                    value="inStock"
+                    checked={editForm.stockStatus === "inStock"}
+                    onChange={() => setEditForm({...editForm, stockStatus: "inStock"})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="inStock">In Stock</label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="outOfStock"
+                    name="stockStatus"
+                    value="outOfStock"
+                    checked={editForm.stockStatus === "outOfStock"}
+                    onChange={() => setEditForm({...editForm, stockStatus: "outOfStock"})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="outOfStock">Out of Stock</label>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label>Free Delivery</Label>
+              <div className="flex gap-4 mt-2">
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="freeDeliveryYes"
+                    name="freeDelivery"
+                    value="yes"
+                    checked={editForm.freeDelivery === "yes"}
+                    onChange={() => setEditForm({...editForm, freeDelivery: "yes"})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="freeDeliveryYes">Yes</label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="freeDeliveryNo"
+                    name="freeDelivery"
+                    value="no"
+                    checked={editForm.freeDelivery === "no"}
+                    onChange={() => setEditForm({...editForm, freeDelivery: "no"})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="freeDeliveryNo">No</label>
+                </div>
+              </div>
             </div>
           </div>
 

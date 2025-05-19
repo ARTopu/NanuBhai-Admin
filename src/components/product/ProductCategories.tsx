@@ -14,6 +14,19 @@ import { categoryService } from '@/services/categoryService';
 
 const DEFAULT_IMAGE = "/images/product/product-default.png";
 
+// Utility function to get the correct image URL
+const getImageUrl = (imageUrl: string | null) => {
+  if (!imageUrl) return DEFAULT_IMAGE;
+
+  // If the URL already includes http:// or https://, return it as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+
+  // Otherwise, prepend the backend URL
+  return `http://localhost:4000/${imageUrl}`;
+};
+
 interface Category {
   id: number;
   name: string;
@@ -51,9 +64,70 @@ export default function ProductCategories() {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Use a state to track if we're on the client side
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
+    // Set isClient to true when component mounts (client-side only)
+    setIsClient(true);
+
+    // Test server connectivity first
+    testServerConnection();
     fetchCategories();
   }, []);
+
+  const testServerConnection = async () => {
+    try {
+      console.log('Testing connection to backend server...');
+
+      // Try a direct fetch to the root URL first
+      try {
+        console.log('Trying direct fetch to http://localhost:4000/...');
+        const directResponse = await fetch('http://localhost:4000/', {
+          mode: 'cors',
+          headers: {
+            'Accept': 'text/html,application/json'
+          }
+        });
+        console.log('Direct fetch response status:', directResponse.status);
+        console.log('Direct fetch successful! Server is running.');
+      } catch (directError) {
+        console.error('Direct fetch failed:', directError);
+        console.error('This suggests the server is not running or not accessible.');
+      }
+
+      // Try the service method
+      console.log('Trying service method...');
+      const isConnected = await categoryService.testConnection();
+
+      if (isConnected) {
+        console.log('✅ Server connection test passed');
+        // Clear any previous error
+        setFormError(null);
+      } else {
+        console.error('❌ Server connection test failed');
+
+        // Create a more detailed error message with troubleshooting tips
+        const errorMessage = `
+Cannot connect to the server at http://localhost:4000/
+
+Possible issues:
+1. The server might not be running - check your terminal
+2. CORS might not be enabled - make sure your backend has "app.use(cors())"
+3. There might be a network/firewall issue
+4. The server might be running on a different port
+
+Try opening http://localhost:4000/ directly in your browser to check if the server is accessible.
+Also check the browser console (F12) for more detailed error messages.
+        `;
+
+        setFormError(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error testing server connection:', error);
+      setFormError('Error testing server connection. Check console for details.');
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -66,17 +140,10 @@ export default function ProductCategories() {
         const categoriesData = response.data.data;
         console.log('Categories data:', categoriesData);
 
-        // Process the categories to handle image paths
-        const processedCategories = categoriesData.map((cat: Category) => {
-          // If imageUrl is null or undefined, use default image for display purposes
-          // We'll keep the original null value in the data
-          return {
-            ...cat,
-            // We don't modify the actual imageUrl property here, just for display purposes
-          };
-        });
+        // Process categories data
 
-        setCategories(processedCategories);
+        // Set the categories state
+        setCategories(categoriesData);
       } else {
         console.error('Unexpected API response format:', response.data);
         console.error('Failed to fetch categories: Unexpected response format');
@@ -113,17 +180,53 @@ export default function ProductCategories() {
     setIsLoading(true);
 
     try {
+      // Validate inputs
+      if (!category.trim()) {
+        setFormError('Category name is required');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Creating category with name:', category);
+      console.log('Description:', description);
+      console.log('Has image:', !!categoryImage);
+
       const formData = new FormData();
       formData.append('name', category.trim());
       formData.append('description', description.trim());
 
+      // Include image handling for proper category creation
       if (categoryImage) {
-        const base64Response = await fetch(categoryImage);
-        const blob = await base64Response.blob();
-        formData.append('image', blob, 'category-image.jpg');
+        try {
+          console.log('Processing image...');
+          const base64Response = await fetch(categoryImage);
+          const blob = await base64Response.blob();
+
+          // Log blob details
+          console.log('Image blob created:', {
+            type: blob.type,
+            size: `${(blob.size / 1024).toFixed(2)} KB`
+          });
+
+          // Use 'image' as the field name - this should match what your backend expects
+          formData.append('image', blob, 'category-image.jpg');
+
+          // Also add a flag to indicate that an image is included
+          formData.append('hasImage', 'true');
+        } catch (imageError) {
+          console.error('Error processing image:', imageError);
+          setFormError('Error processing image. Please try a different image.');
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Explicitly set hasImage to false when no image is provided
+        formData.append('hasImage', 'false');
       }
 
-      await categoryService.createCategory(formData);
+      console.log('Sending category creation request...');
+      const response = await categoryService.createCategory(formData);
+      console.log('Category creation successful:', response.data);
 
       // Set success message
       setSuccessMessage('Category created successfully!');
@@ -141,8 +244,29 @@ export default function ProductCategories() {
       (e.target as HTMLFormElement).reset();
 
     } catch (err: any) {
-      setFormError(err.response?.data?.message || 'Failed to create category');
       console.error('Error creating category:', err);
+
+      // Provide more detailed error information
+      let errorMessage = 'Failed to create category';
+
+      if (err.response) {
+        console.error('Error response status:', err.response.status);
+        console.error('Error response data:', err.response.data);
+
+        if (err.response.data) {
+          if (err.response.data.message) {
+            errorMessage = err.response.data.message;
+          } else if (err.response.data.error) {
+            errorMessage = err.response.data.error;
+          } else if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
+            errorMessage = err.response.data.errors.join(', ');
+          }
+        }
+      } else if (err.message) {
+        errorMessage = `Network error: ${err.message}`;
+      }
+
+      setFormError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -190,13 +314,8 @@ export default function ProductCategories() {
 
     setCurrentCategory(category);
 
-    // Process the image URL to ensure it's a string
-    let safeImageUrl = DEFAULT_IMAGE;
-
-    if (category.imageUrl) {
-      // If we have an image URL from the API, use it with the base URL
-      safeImageUrl = `https://localhost:7293/${category.imageUrl}`;
-    }
+    // Process the image URL using our utility function
+    const safeImageUrl = getImageUrl(category.imageUrl);
 
     console.log('Editing category with image:', safeImageUrl);
 
@@ -220,13 +339,19 @@ export default function ProductCategories() {
       const formData = new FormData();
 
       // Add the required fields for the update API
-      formData.append('Id', currentCategory.id.toString());
-      formData.append('Name', editForm.name);
-      formData.append('Description', editForm.description || '');
+      // Use lowercase field names to match backend expectations
+      formData.append('id', currentCategory.id.toString());
+      formData.append('name', editForm.name);
+      formData.append('description', editForm.description || '');
 
       // Append image if a new image was selected
       if (selectedImage) {
-        formData.append('ImageFile', selectedImage, 'category-image.jpg');
+        // Try both image field names that might be expected by the backend
+        formData.append('image', selectedImage, 'category-image.jpg');
+        // Also add a flag to indicate that an image is included
+        formData.append('hasImage', 'true');
+      } else {
+        formData.append('hasImage', 'false');
       }
 
       console.log('Updating category with data:', {
@@ -476,12 +601,15 @@ export default function ProductCategories() {
                     {categoryImage ? (
                       <div className="flex flex-col items-center">
                         <div className="relative w-32 h-32 mb-4">
-                          <Image
-                            src={categoryImage || ''}
-                            alt="Category preview"
-                            fill
-                            className="object-cover rounded-lg"
-                          />
+                          {/* Only render Image component on client side */}
+                          {isClient && categoryImage && (
+                            <Image
+                              src={categoryImage}
+                              alt="Category preview"
+                              fill
+                              className="object-cover rounded-lg"
+                            />
+                          )}
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           Click or drag to replace image
@@ -538,9 +666,39 @@ export default function ProductCategories() {
 
             {formError && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{formError}</p>
+                <div className="text-sm text-red-600 whitespace-pre-line">{formError}</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {/* Only render these buttons on the client side */}
+                  {isClient && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => window.open('http://localhost:4000/', '_blank')}
+                        className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                      >
+                        Open Backend URL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.open('test-backend.html', '_blank')}
+                        className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-blue-700"
+                      >
+                        Run Connection Tests
+                      </button>
+                      <button
+                        type="button"
+                        onClick={testServerConnection}
+                        className="px-3 py-1 text-xs font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                      >
+                        Retry Connection
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             )}
+
+            {/* Troubleshooting sections removed */}
           </div>
         </Form>
 
@@ -561,14 +719,19 @@ export default function ProductCategories() {
                   <tr key={category.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 h-[72px]">
                     <td className="px-5 py-4 sm:px-6 text-start">
                       <div className="w-10 h-10 overflow-hidden rounded-full">
-                        <Image
-                          width={40}
-                          height={40}
-                          src={category.imageUrl ? `https://localhost:7293/${category.imageUrl}` : DEFAULT_IMAGE}
-                          alt={category.name}
-                          priority={true}
-                          className="object-cover"
-                        />
+                        {/* Only render Image component on client side */}
+                        {isClient ? (
+                          <Image
+                            width={40}
+                            height={40}
+                            src={getImageUrl(category.imageUrl)}
+                            alt={category.name}
+                            priority={true}
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-4 sm:px-6 text-start">
@@ -661,11 +824,15 @@ export default function ProductCategories() {
           <div>
             <Label>Category Image</Label>
             <div className="mt-2 flex flex-col items-center justify-center gap-3">
-              <img
-                src={imagePreview || editForm.imageUrl}
-                alt={editForm.name}
-                className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-              />
+              {isClient ? (
+                <img
+                  src={imagePreview || getImageUrl(editForm.imageUrl)}
+                  alt={editForm.name}
+                  className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                />
+              ) : (
+                <div className="h-32 w-32 bg-gray-200 rounded-lg border border-gray-200 dark:border-gray-700"></div>
+              )}
               <label className="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 <span className="text-sm text-gray-600 dark:text-gray-300">Change Image</span>
                 <input

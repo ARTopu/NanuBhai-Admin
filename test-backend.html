@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.3);
+            border-radius: 50%;
+            border-top-color: #4CAF50;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Backend Connection Test</h1>
+    <p>This page tests the connection to your backend server running on port 4000.</p>
+    
+    <div class="card">
+        <h2>Test 1: Basic Connection</h2>
+        <p>Tests if the server is running and accessible at http://localhost:4000/</p>
+        <button onclick="testBasicConnection()">Run Test</button>
+        <div id="basic-result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Test 2: CORS Configuration</h2>
+        <p>Tests if the server has CORS properly configured</p>
+        <button onclick="testCORS()">Run Test</button>
+        <div id="cors-result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Test 3: API Endpoint</h2>
+        <p>Tests if the /api/Category/GetAll endpoint is working</p>
+        <button onclick="testCategoryAPI()">Run Test</button>
+        <div id="api-result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Test 4: Create Category</h2>
+        <p>Tests if the /api/Category/Create endpoint is working</p>
+        <button onclick="testCreateCategory()">Run Test</button>
+        <div id="create-result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Troubleshooting Tips</h2>
+        <ul>
+            <li>Make sure your backend server is running on port 4000</li>
+            <li>Check if CORS is enabled on your backend</li>
+            <li>Check for any errors in your backend console</li>
+            <li>Try accessing http://localhost:4000/ directly in your browser</li>
+            <li>Check if your firewall is blocking connections</li>
+        </ul>
+    </div>
+    
+    <script>
+        // Test 1: Basic Connection
+        async function testBasicConnection() {
+            const resultDiv = document.getElementById('basic-result');
+            resultDiv.innerHTML = '<div class="loading"></div> Testing...';
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch('http://localhost:4000/', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/html,application/json'
+                    }
+                });
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                const text = await response.text();
+                resultDiv.innerHTML = `
+                    <p class="success">✅ Connection successful!</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <p>Response time: ${responseTime}ms</p>
+                    <p>Response:</p>
+                    <pre>${text.substring(0, 200)}${text.length > 200 ? '...' : ''}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Connection failed!</p>
+                    <p>Error: ${error.message}</p>
+                    <p>This suggests the server is not running or not accessible.</p>
+                `;
+            }
+        }
+        
+        // Test 2: CORS Configuration
+        async function testCORS() {
+            const resultDiv = document.getElementById('cors-result');
+            resultDiv.innerHTML = '<div class="loading"></div> Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/test', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">✅ CORS is properly configured!</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <p>Response:</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ CORS test failed!</p>
+                    <p>Error: ${error.message}</p>
+                    <p>This might be a CORS issue. Make sure your backend has CORS enabled.</p>
+                    <pre>
+const cors = require('cors');
+app.use(cors());
+                    </pre>
+                `;
+            }
+        }
+        
+        // Test 3: API Endpoint
+        async function testCategoryAPI() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '<div class="loading"></div> Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/Category/GetAll', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">✅ API endpoint is working!</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <p>Response:</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ API endpoint test failed!</p>
+                    <p>Error: ${error.message}</p>
+                    <p>Make sure your backend has the /api/Category/GetAll endpoint implemented.</p>
+                `;
+            }
+        }
+        
+        // Test 4: Create Category
+        async function testCreateCategory() {
+            const resultDiv = document.getElementById('create-result');
+            resultDiv.innerHTML = '<div class="loading"></div> Testing...';
+            
+            try {
+                const testData = {
+                    name: 'Test Category ' + Math.floor(Math.random() * 1000),
+                    description: 'This is a test category created from the test page'
+                };
+                
+                const response = await fetch('http://localhost:4000/api/Category/Create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">✅ Create endpoint is working!</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <p>Response:</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Create endpoint test failed!</p>
+                    <p>Error: ${error.message}</p>
+                    <p>Make sure your backend has the /api/Category/Create endpoint implemented.</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Backend Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        button { padding: 10px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Simple Backend Connection Test</h1>
+    <p>This is a minimal test page with no React or Next.js dependencies.</p>
+    
+    <div>
+        <h2>Test Backend Connection</h2>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connection-result"></div>
+    </div>
+    
+    <script>
+        function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = 'Testing connection...';
+            
+            // Try to fetch from the backend
+            fetch('http://localhost:4000/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Connection successful!</p>
+                        <p>Response:</p>
+                        <pre>${data}</pre>
+                    `;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Connection failed: ${error.message}</p>
+                        <p>This could be due to:</p>
+                        <ul>
+                            <li>Backend server not running on port 4000</li>
+                            <li>CORS issues (most common)</li>
+                            <li>Network/firewall blocking the connection</li>
+                        </ul>
+                    `;
+                });
+        }
+    </script>
+</body>
+</html>
