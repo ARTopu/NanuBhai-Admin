@@ -943,6 +943,7 @@ export default function ProductList() {
       stockStatus: product.stockStatus,
       freeDelivery: product.freeDelivery,
       categoryId: product.categoryId,
+      imageUrl: product.imageUrl || "", // Fix: add imageUrl to match EditFormState
     });
     // Set image preview using our getProductImage function
     const imageUrl = getProductImage(product);
