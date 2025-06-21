@@ -1,4 +1,4 @@
-  "use client";
+"use client";
 import React, { useState, useEffect } from "react";
 import ComponentCard from "../common/ComponentCard";
 import Form from "../form/Form";
@@ -130,7 +130,8 @@ export default function AddProduct() {
       formData.append('name', productNameInput?.value || '');
       formData.append('description', description);
       formData.append('price', priceInput?.value || '0');
-      formData.append('previousPrice', form.querySelector('#previousPrice')?.value || '0');
+      const previousPriceInput = form.querySelector('#previousPrice') as HTMLInputElement | null;
+      formData.append('previousPrice', previousPriceInput?.value || '0');
       formData.append('quantity', quantityInput?.value || '0');
       formData.append('stockStatus', stockStatus);
       formData.append('freeDelivery', freeDelivery);
@@ -189,9 +190,18 @@ export default function AddProduct() {
           console.error("API returned error:", response.data);
           alert(`Failed to add product: ${response.data.message || 'Unknown error'}`);
         }
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
+        if (
+          apiError &&
+          typeof apiError === 'object' &&
+          'message' in apiError &&
+          typeof (apiError as { message?: unknown }).message === 'string'
+        ) {
+          alert(`Error adding product: ${(apiError as { message: string }).message || 'Unknown error'}`);
+        } else {
+          alert('Error adding product: Unknown error');
+        }
         console.error("API call failed:", apiError);
-        alert(`Error adding product: ${apiError.message || 'Unknown error'}`);
       } finally {
         // Reset button state
         if (submitButton) {
@@ -213,10 +223,6 @@ export default function AddProduct() {
 
     console.log("Selected category:", value);
     console.log("Selected category name:", selectedCategoryObj?.name);
-  };
-
-  const handleSubCategoryChange = (value: string) => {
-    console.log("Selected sub-category:", value);
   };
 
   return (
