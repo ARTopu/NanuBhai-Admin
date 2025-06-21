@@ -1,44 +1,7 @@
-import axios from 'axios';
+import axios, { AxiosProgressEvent } from 'axios';
 
 // API base URL for categories
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/Category`;
-
-// Function to test all URLs and find one that works
-async function findWorkingURL() {
-  console.log('Testing all possible API URLs...');
-
-  for (const url of API_BASE_URLS) {
-    try {
-      console.log(`Testing URL: ${url}/GetAll`);
-      const response = await fetch(`${url}/GetAll`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (response.ok) {
-        console.log(`✅ URL ${url} works!`);
-        API_BASE_URL = url;
-        return true;
-      } else {
-        console.log(`❌ URL ${url} returned status ${response.status}`);
-      }
-    } catch (error) {
-      console.log(`❌ URL ${url} failed: ${error.message}`);
-    }
-  }
-
-  console.error('❌ None of the URLs worked');
-  return false;
-}
-
-// Try to find a working URL when the module loads
-findWorkingURL().then(success => {
-  if (success) {
-    console.log(`Using API URL: ${API_BASE_URL}`);
-  } else {
-    console.error('Could not find a working API URL');
-  }
-});
 
 // No authentication is needed for this application
 
@@ -48,7 +11,7 @@ interface Category {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  subCategories: any[];
+  subCategories: unknown[];
 }
 
 interface ApiResponse {
@@ -73,8 +36,12 @@ export async function testServerConnectivity() {
         });
         console.log('Approach 1 succeeded! Status:', response.status);
         return true;
-      } catch (error: any) {
-        console.error('Approach 1 failed:', error.message);
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          console.error('Approach 1 failed:', error.message);
+        } else {
+          console.error('Approach 1 failed:', (error as Error).message);
+        }
         return false;
       }
     },
@@ -92,8 +59,8 @@ export async function testServerConnectivity() {
         });
         console.log('Approach 2 succeeded! Status:', response.status);
         return true;
-      } catch (error: any) {
-        console.error('Approach 2 failed:', error.message);
+      } catch (error: unknown) {
+        console.error('Approach 2 failed:', (error as Error).message);
         return false;
       }
     },
@@ -117,8 +84,8 @@ export async function testServerConnectivity() {
         });
         console.log('Approach 3 succeeded! Status:', response.status);
         return true;
-      } catch (error: any) {
-        console.error('Approach 3 failed:', error.message);
+      } catch (error: unknown) {
+        console.error('Approach 3 failed:', (error as Error).message);
         return false;
       }
     },
@@ -132,8 +99,8 @@ export async function testServerConnectivity() {
         });
         console.log('Approach 4 succeeded! Status:', response.status);
         return true;
-      } catch (error: any) {
-        console.error('Approach 4 failed:', error.message);
+      } catch (error: unknown) {
+        console.error('Approach 4 failed:', (error as Error).message);
         return false;
       }
     },
@@ -147,8 +114,8 @@ export async function testServerConnectivity() {
         });
         console.log('Approach 5 succeeded! Response:', response.data);
         return true;
-      } catch (error: any) {
-        console.error('Approach 5 failed:', error.message);
+      } catch (error: unknown) {
+        console.error('Approach 5 failed:', (error as Error).message);
         return false;
       }
     }
@@ -186,18 +153,9 @@ export const categoryService = {
       console.log(`Trying axios with ${API_BASE_URL}/GetAll`);
       return await axios.get<ApiResponse>(`${API_BASE_URL}/GetAll`);
     } catch (error) {
-      console.error('Axios approach failed:', error.message);
+      console.error('Axios approach failed:', (error as Error).message);
 
-      // Approach 2: Try to find a working URL first
-      console.log('Trying to find a working URL...');
-      const found = await findWorkingURL();
-
-      if (found) {
-        console.log(`Found working URL: ${API_BASE_URL}, trying again...`);
-        return await axios.get<ApiResponse>(`${API_BASE_URL}/GetAll`);
-      }
-
-      // Approach 3: Try fetch API as a fallback
+      // Approach 2: Try fetch API as a fallback
       console.log('Trying fetch API as fallback...');
       try {
         const response = await fetch(`${API_BASE_URL}/GetAll`);
@@ -212,7 +170,7 @@ export const categoryService = {
           config: {},
         };
       } catch (fetchError) {
-        console.error('Fetch approach also failed:', fetchError.message);
+        console.error('Fetch approach also failed:', (fetchError as Error).message);
 
         // If all approaches fail, throw the original error
         throw error;
@@ -223,73 +181,71 @@ export const categoryService = {
   async createCategory(formData: FormData) {
     // Log the form data for debugging
     console.log('Creating category with form data:');
-    for (let pair of formData.entries()) {
+    for (const pair of formData.entries()) {
       console.log(pair[0], pair[1]);
     }
 
-    try {
-      // Make sure we're using the correct URL
-      const url = `${API_BASE_URL}/Create`;
-      console.log('Sending request to:', url);
+    // Make sure we're using the correct URL
+    const url = `${API_BASE_URL}/Create`;
+    console.log('Sending request to:', url);
 
-      // Try with different content types
-      console.log('Trying with multipart/form-data content type...');
+    // Try with different content types
+    console.log('Trying with multipart/form-data content type...');
 
-      // Add detailed request logging
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        // Log request and response details
-        onUploadProgress: (progressEvent: any) => {
+    // Add detailed request logging
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      // Log request and response details
+      onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+        if (progressEvent.total) {
           console.log('Upload progress:', Math.round((progressEvent.loaded * 100) / progressEvent.total), '%');
-        },
-      };
+        }
+      },
+    };
 
-      console.log('Request config:', config);
+    console.log('Request config:', config);
 
-      // Send the complete form data including image if available
-      console.log('Sending complete form data with all fields');
+    // Send the complete form data including image if available
+    console.log('Sending complete form data with all fields');
 
-      // Create a new FormData to ensure proper formatting
-      const completeData = new FormData();
+    // Create a new FormData to ensure proper formatting
+    const completeData = new FormData();
 
-      // Add the basic fields
-      completeData.append('name', formData.get('name') as string);
-      completeData.append('description', formData.get('description') as string);
+    // Add the basic fields
+    completeData.append('name', formData.get('name') as string);
+    completeData.append('description', formData.get('description') as string);
 
-      // Check if we have an image
-      const hasImage = formData.get('hasImage') === 'true';
-      console.log('Has image:', hasImage);
+    // Check if we have an image
+    const hasImage = formData.get('hasImage') === 'true';
+    console.log('Has image:', hasImage);
 
-      if (hasImage && formData.get('image')) {
-        console.log('Including image in request');
-        completeData.append('image', formData.get('image') as Blob, 'category-image.jpg');
-      }
+    if (hasImage && formData.get('image')) {
+      console.log('Including image in request');
+      completeData.append('image', formData.get('image') as Blob, 'category-image.jpg');
+    }
 
-      // Send the request with the complete data
+    // Send the request with the complete data
+    try {
       const response = await axios.post<ApiResponse>(url, completeData, config);
 
       console.log('Response received:', response.data);
       return response;
-    } catch (error: any) {
-      console.error('Error in createCategory:', error.message);
+    } catch (error: unknown) {
+      console.error('Error in createCategory:', (error as Error).message);
 
       // Detailed error logging
-      if (error.response) {
-        console.error('Error response status:', error.response.status);
-        console.error('Error response headers:', error.response.headers);
-        console.error('Error response data:', error.response.data);
+      if (axios.isAxiosError(error)) {
+        console.error('Error response status:', error.response?.status);
+        console.error('Error response headers:', error.response?.headers);
+        console.error('Error response data:', error.response?.data);
 
         // Try to parse the error response if it's HTML
-        if (typeof error.response.data === 'string' && error.response.data.includes('<!DOCTYPE html>')) {
+        if (typeof error.response?.data === 'string' && error.response.data.includes('<!DOCTYPE html>')) {
           console.error('Received HTML error response - server might be returning an error page');
           console.error('First 200 characters of HTML:', error.response.data.substring(0, 200));
         }
-      } else if (error.request) {
-        console.error('No response received from server. Request details:', error.request);
-      } else {
-        console.error('Error setting up request:', error.message);
       }
 
       // Try an alternative approach if the first one fails
@@ -314,10 +270,10 @@ export const categoryService = {
 
         console.log('JSON approach succeeded:', jsonResponse.data);
         return jsonResponse;
-      } catch (jsonError: any) {
-        console.error('JSON approach also failed:', jsonError.message);
-        if (jsonError.response) {
-          console.error('JSON error response:', jsonError.response.data);
+      } catch (jsonError: unknown) {
+        console.error('JSON approach also failed:', (jsonError as Error).message);
+        if (axios.isAxiosError(jsonError)) {
+          console.error('JSON error response:', jsonError.response?.data);
         }
       }
 
@@ -351,10 +307,10 @@ export const categoryService = {
           'Content-Type': 'multipart/form-data',
         },
       });
-    } catch (error: any) {
-      console.error('Update approach 1 failed:', error.message);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
+    } catch (error: unknown) {
+      console.error('Update approach 1 failed:', (error as Error).message);
+      if (axios.isAxiosError(error)) {
+        console.error('Error response:', error.response?.data);
       }
 
       // Approach 2: Try with JSON
@@ -372,10 +328,10 @@ export const categoryService = {
             'Content-Type': 'application/json',
           },
         });
-      } catch (error2: any) {
-        console.error('Update approach 2 failed:', error2.message);
-        if (error2.response) {
-          console.error('Error response:', error2.response.data);
+      } catch (error2: unknown) {
+        console.error('Update approach 2 failed:', (error2 as Error).message);
+        if (axios.isAxiosError(error2)) {
+          console.error('Error response:', error2.response?.data);
         }
 
         // Approach 3: Try with POST instead of PUT
@@ -386,10 +342,10 @@ export const categoryService = {
               'Content-Type': 'multipart/form-data',
             },
           });
-        } catch (error3: any) {
-          console.error('Update approach 3 failed:', error3.message);
-          if (error3.response) {
-            console.error('Error response:', error3.response.data);
+        } catch (error3: unknown) {
+          console.error('Update approach 3 failed:', (error3 as Error).message);
+          if (axios.isAxiosError(error3)) {
+            console.error('Error response:', error3.response?.data);
           }
 
           throw error; // Throw the original error
@@ -415,15 +371,15 @@ export const categoryService = {
       return await axios.delete<ApiResponse>(endpoint, {
         data: { id: id }
       });
-    } catch (error: any) {
-      console.error('Delete approach 1 failed:', error.message);
+    } catch (error: unknown) {
+      console.error('Delete approach 1 failed:', (error as Error).message);
 
       // Approach 2: Try sending ID as a URL parameter
       try {
         console.log('Approach 2: Sending ID as URL parameter');
         return await axios.delete<ApiResponse>(`${API_BASE_URL}/${id}`);
-      } catch (error2: any) {
-        console.error('Delete approach 2 failed:', error2.message);
+      } catch (error2: unknown) {
+        console.error('Delete approach 2 failed:', (error2 as Error).message);
 
         // Approach 3: Try with form data
         try {
@@ -437,8 +393,8 @@ export const categoryService = {
               'Content-Type': 'multipart/form-data'
             }
           });
-        } catch (error3: any) {
-          console.error('Delete approach 3 failed:', error3.message);
+        } catch (error3: unknown) {
+          console.error('Delete approach 3 failed:', (error3 as Error).message);
           throw error; // Throw the original error
         }
       }
