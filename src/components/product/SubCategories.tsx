@@ -69,7 +69,6 @@ export default function SubCategories() {
   });
   const [imagePreview, setImagePreview] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { isOpen, openModal, closeModal } = useModal();
   const { isOpen: isDeleteModalOpen, openModal: openDeleteModal, closeModal: closeDeleteModal } = useModal();
 
@@ -114,11 +113,11 @@ export default function SubCategories() {
         console.log('Category options for dropdown:', options);
       } else {
         console.error("Failed to fetch categories:", response.data);
-        setError('Failed to fetch categories');
+        setDeleteError('Failed to fetch categories');
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
-      setError('Failed to fetch categories');
+      setDeleteError('Failed to fetch categories');
     } finally {
       setIsLoading(false);
     }
@@ -155,11 +154,11 @@ export default function SubCategories() {
 
         setSubCategories(enrichedSubCategories);
       } else {
-        setError('Failed to fetch subcategories');
+        setDeleteError('Failed to fetch subcategories');
       }
     } catch (err) {
       console.error('Error fetching subcategories:', err);
-      setError('Failed to fetch subcategories');
+      setDeleteError('Failed to fetch subcategories');
     } finally {
       setIsLoading(false);
     }
@@ -275,11 +274,11 @@ export default function SubCategories() {
           form.reset(); // Reset the native form
         } else {
           const errorMessage = response.data.errors ? response.data.errors.join(', ') : 'Failed to create subcategory';
-          setError(errorMessage);
+          setDeleteError(errorMessage);
         }
       } catch (err) {
         console.error('Error creating subcategory:', err);
-        setError('Failed to create subcategory');
+        setDeleteError('Failed to create subcategory');
       } finally {
         setIsLoading(false);
       }
@@ -611,7 +610,8 @@ export default function SubCategories() {
         }
       } catch (directError: unknown) {
         if (directError && typeof directError === 'object' && 'message' in directError) {
-          console.error('Direct FormData error:', (directError as any).message);
+          const msg = (directError as { message?: string }).message;
+          console.error('Direct FormData error:', msg);
         } else {
           console.error('Direct FormData error:', directError);
         }
@@ -1111,8 +1111,8 @@ export default function SubCategories() {
                       }}
                     />
                   )}
-                  {error && (
-                    <p className="mt-1 text-sm text-red-500">{error}</p>
+                  {deleteError && (
+                    <p className="mt-1 text-sm text-red-500">{deleteError}</p>
                   )}
                 </div>
 
