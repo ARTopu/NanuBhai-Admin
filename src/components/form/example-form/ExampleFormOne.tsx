@@ -54,7 +54,7 @@ export default function ExampleFormOne() {
               options={options}
               placeholder="Select an option"
               onChange={handleSelectChange}
-              defaultValue=""
+              value=""
               className="bg-gray-50 dark:bg-gray-800"
             />
           </div>
