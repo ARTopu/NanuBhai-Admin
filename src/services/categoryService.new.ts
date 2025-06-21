@@ -7,17 +7,36 @@ export interface Category {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  subCategories?: any[];
+  subCategories?: unknown[];
   createdAt?: string;
   updatedAt?: string;
 }
 
 // Helper function to transform response data
-const transformCategory = (category: any): Category => {
-  return {
-    ...category,
-    imageUrl: getFullImageUrl(category.imageUrl)
-  };
+const transformCategory = (category: unknown): Category => {
+  if (
+    typeof category === 'object' &&
+    category !== null &&
+    '_id' in category &&
+    'name' in category &&
+    'description' in category &&
+    'imageUrl' in category
+  ) {
+    const cat = category as {
+      _id: string;
+      name: string;
+      description: string | null;
+      imageUrl: string | null;
+      subCategories?: unknown[];
+      createdAt?: string;
+      updatedAt?: string;
+    };
+    return {
+      ...cat,
+      imageUrl: getFullImageUrl(cat.imageUrl)
+    };
+  }
+  throw new Error('Invalid category object');
 };
 
 export const categoryService = {
@@ -57,7 +76,7 @@ export const categoryService = {
     try {
       // Log the form data for debugging
       console.log('Creating category with form data:');
-      for (let pair of formData.entries()) {
+      for (const pair of formData.entries()) {
         console.log(pair[0], pair[1]);
       }
 
@@ -87,7 +106,7 @@ export const categoryService = {
     try {
       // Log the form data for debugging
       console.log(`Updating category ${id} with form data:`);
-      for (let pair of formData.entries()) {
+      for (const pair of formData.entries()) {
         console.log(pair[0], pair[1]);
       }
 

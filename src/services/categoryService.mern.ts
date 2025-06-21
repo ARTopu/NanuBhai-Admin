@@ -8,7 +8,7 @@ interface Category {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  subCategories?: any[];
+  subCategories?: unknown[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -33,7 +33,7 @@ export const categoryService = {
   async createCategory(formData: FormData) {
     // Log the form data for debugging
     console.log('Creating category with form data:');
-    for (let pair of formData.entries()) {
+    for (const pair of formData.entries()) {
       console.log(pair[0], pair[1]);
     }
 
@@ -47,7 +47,7 @@ export const categoryService = {
   async updateCategory(id: string, formData: FormData) {
     // Log the form data for debugging
     console.log(`Updating category ${id} with form data:`);
-    for (let pair of formData.entries()) {
+    for (const pair of formData.entries()) {
       console.log(pair[0], pair[1]);
     }
 
