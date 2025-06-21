@@ -14,6 +14,9 @@ import "flatpickr/dist/themes/light.css";
 export default function ExampleFormTwo() {
   const [selectedOption, setSelectedOption] = useState<string>("Free");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [selectedGender, setSelectedGender] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
 
   const handleDateChange = (date: Date[]) => {
     setDateOfBirth(date[0].toLocaleDateString()); // Handle selected date and format it
@@ -40,9 +43,17 @@ export default function ExampleFormTwo() {
     { value: "canada", label: "Canada" },
   ];
   const handleSelectGender = (value: string) => {
+    setSelectedGender(value);
     console.log("Selected value:", value);
   };
-
+  const handleSelectCategory = (value: string) => {
+    setSelectedCategory(value);
+    console.log("Selected category:", value);
+  };
+  const handleSelectCountry = (value: string) => {
+    setSelectedCountry(value);
+    console.log("Selected country:", value);
+  };
   const handleRadioChange = (value: string) => {
     setSelectedOption(value);
     console.log("Selected:", value);
@@ -70,7 +81,7 @@ export default function ExampleFormTwo() {
               options={optionsGender}
               placeholder="Select an option"
               onChange={handleSelectGender}
-              defaultValue=""
+              value={selectedGender}
               className="bg-gray-50 dark:bg-gray-800"
             />
           </div>
@@ -96,8 +107,8 @@ export default function ExampleFormTwo() {
             <Select
               options={categoryOptions}
               placeholder="Select an option"
-              onChange={handleSelectGender}
-              defaultValue=""
+              onChange={handleSelectCategory}
+              value={selectedCategory}
               className="bg-gray-50 dark:bg-gray-800"
             />
           </div>
@@ -127,8 +138,8 @@ export default function ExampleFormTwo() {
             <Select
               options={country}
               placeholder="--Select Country--"
-              onChange={handleSelectGender}
-              defaultValue=""
+              onChange={handleSelectCountry}
+              value={selectedCountry}
               className="bg-gray-50 dark:bg-gray-800"
             />
           </div>

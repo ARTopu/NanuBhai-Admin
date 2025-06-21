@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -89,7 +89,33 @@ export default function ProductList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch products and categories on component mount
+  // Get image URL for product - simplified to match category list
+  const getProductImage = useCallback((product: Product | null | undefined): string => {
+    // Check if product is valid
+    if (!product) {
+      console.warn('Invalid product object:', product);
+      return DEFAULT_IMAGE;
+    }
+
+    console.log('Getting image for product:', product.name);
+
+    // If there's an image in the images array, use the first one
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      console.log('Using first image from images array:', product.images[0]);
+      return getImageUrl(product.images[0]);
+    }
+
+    // Otherwise use the imageUrl if available
+    if (product.imageUrl) {
+      console.log('Using imageUrl property:', product.imageUrl);
+      return getImageUrl(product.imageUrl);
+    }
+
+    // Default image if none available
+    console.log('No image found, using default');
+    return DEFAULT_IMAGE;
+  }, []); // remove categories from dependency array
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -187,7 +213,7 @@ export default function ProductList() {
     // return () => {
     //   clearInterval(refreshInterval);
     // };
-  }, []); // intentionally leave dependency array empty, getProductImage is defined below
+  }, [getProductImage]); // add getProductImage to dependency array
 
   // Get category name by ID
   const getCategoryName = (categoryId: string): string => {
@@ -197,33 +223,6 @@ export default function ProductList() {
 
   // Default image path
   const DEFAULT_IMAGE = "/images/product/product-default.png";
-
-  // Get image URL for product - simplified to match category list
-  const getProductImage = (product: Product | null | undefined): string => {
-    // Check if product is valid
-    if (!product) {
-      console.warn('Invalid product object:', product);
-      return DEFAULT_IMAGE;
-    }
-
-    console.log('Getting image for product:', product.name);
-
-    // If there's an image in the images array, use the first one
-    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-      console.log('Using first image from images array:', product.images[0]);
-      return getImageUrl(product.images[0]);
-    }
-
-    // Otherwise use the imageUrl if available
-    if (product.imageUrl) {
-      console.log('Using imageUrl property:', product.imageUrl);
-      return getImageUrl(product.imageUrl);
-    }
-
-    // Default image if none available
-    console.log('No image found, using default');
-    return DEFAULT_IMAGE;
-  };
 
   // Utility function to get the correct image URL - same as in category list
   const getImageUrl = (imageUrl: string | null | undefined): string => {
