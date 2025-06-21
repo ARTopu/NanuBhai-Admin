@@ -39,7 +39,7 @@ const EditCategorySelect: React.FC<EditCategorySelectProps> = ({
       setSelectedValue("");
       console.log('EditCategorySelect initialized with empty value');
     }
-  }, [initialValue]);
+  }, [initialValue, onChange]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;

@@ -112,14 +112,18 @@ export default function ProductList() {
         console.log('Products API Response:', productsResponse.data);
 
         if (productsResponse.data && productsResponse.data.succeeded) {
-          console.log(`Received ${productsResponse.data.data.length} products`);
+          // Type guard for productsResponse.data.data
+          const productsData = Array.isArray(productsResponse.data.data)
+            ? (productsResponse.data.data as Product[])
+            : [];
+          console.log(`Received ${productsData.length} products`);
 
           // Log the first product to see its structure
-          if (productsResponse.data.data.length > 0) {
-            console.log('First product data:', JSON.stringify(productsResponse.data.data[0], null, 2));
+          if (productsData.length > 0) {
+            console.log('First product data:', JSON.stringify(productsData[0], null, 2));
 
             // Log image information specifically
-            const firstProduct = productsResponse.data.data[0];
+            const firstProduct = productsData[0];
             console.log('Product image info:', {
               imageUrl: firstProduct.imageUrl,
               imageUrlType: typeof firstProduct.imageUrl,
@@ -131,7 +135,7 @@ export default function ProductList() {
 
             // Check all products for image issues
             console.log('Checking all products for image issues...');
-            productsResponse.data.data.forEach((product: Product, index: number) => {
+            productsData.forEach((product: Product, index: number) => {
               if (!product.imageUrl && (!product.images || !Array.isArray(product.images) || product.images.length === 0)) {
                 console.warn(`Product #${index + 1} (${product.name}) has no images`);
               }
@@ -141,13 +145,11 @@ export default function ProductList() {
             });
           }
 
-          setProducts(productsResponse.data.data);
-
-
+          setProducts(productsData);
 
           // Calculate total pages based on the number of products and items per page
-          const calculatedPages = Math.ceil(productsResponse.data.data.length / ITEMS_PER_PAGE);
-          console.log(`Calculated ${calculatedPages} total pages based on ${productsResponse.data.data.length} products and ${ITEMS_PER_PAGE} items per page`);
+          const calculatedPages = Math.ceil(productsData.length / ITEMS_PER_PAGE);
+          console.log(`Calculated ${calculatedPages} total pages based on ${productsData.length} products and ${ITEMS_PER_PAGE} items per page`);
 
           // Ensure we have at least 1 page, and at most 3 pages (to match the UI)
           const finalPages = Math.min(Math.max(calculatedPages, 1), 3);
@@ -185,7 +187,7 @@ export default function ProductList() {
     // return () => {
     //   clearInterval(refreshInterval);
     // };
-  }, []);
+  }, []); // intentionally leave dependency array empty, getProductImage is defined below
 
   // Get category name by ID
   const getCategoryName = (categoryId: string): string => {
@@ -225,16 +227,14 @@ export default function ProductList() {
 
   // Utility function to get the correct image URL - same as in category list
   const getImageUrl = (imageUrl: string | null | undefined): string => {
-    console.log('Processing image URL:', imageUrl, 'Type:', typeof imageUrl);
     if (!imageUrl || typeof imageUrl !== 'string') {
-      console.warn('Invalid image URL:', imageUrl);
       return DEFAULT_IMAGE;
     }
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      console.log('URL already has http/https, using as is');
       return imageUrl;
     }
-    return DEFAULT_IMAGE;
+    // If the imageUrl is a relative path, prepend the backend URL
+    return `http://localhost:4000/${imageUrl.replace(/^\/+/, '')}`;
   };
 
   // Handle edit button click
@@ -518,21 +518,21 @@ export default function ProductList() {
       const productsResponse = await productService.getProducts(`?_t=${timestamp}`);
 
       if (productsResponse.data && productsResponse.data.succeeded) {
-        console.log(`Received ${productsResponse.data.data.length} products`);
-        setProducts(productsResponse.data.data);
-
-
-
+        // Type guard for productsResponse.data.data
+        const productsData = Array.isArray(productsResponse.data.data)
+          ? (productsResponse.data.data as Product[])
+          : [];
+        console.log(`Received ${productsData.length} products`);
+        setProducts(productsData);
         // Calculate total pages based on the number of products and items per page
-        const calculatedPages = Math.ceil(productsResponse.data.data.length / ITEMS_PER_PAGE);
-
+        const calculatedPages = Math.ceil(productsData.length / ITEMS_PER_PAGE);
         // Ensure we have at least 1 page, and at most 3 pages (to match the UI)
         const finalPages = Math.min(Math.max(calculatedPages, 1), 3);
         setTotalPages(finalPages);
         setCurrentPage(1); // Reset to first page when data is refreshed
 
         // Show success message (optional)
-        alert(`Successfully refreshed data. Found ${productsResponse.data.data.length} products.`);
+        alert(`Successfully refreshed data. Found ${productsData.length} products.`);
       } else {
         setError("Failed to refresh products: " + (productsResponse.data?.message || 'Unknown error'));
       }
@@ -703,7 +703,9 @@ export default function ProductList() {
 
                 // Show a summary of the response
                 if (response.data && response.data.succeeded) {
-                  const products = response.data.data;
+                  const products = Array.isArray(response.data.data)
+                    ? (response.data.data as Product[])
+                    : [];
                   const summary = `Successfully retrieved ${products.length} products.\n\n` +
                     `First product:\n` +
                     `- Name: ${products[0]?.name || 'N/A'}\n` +
@@ -775,7 +777,7 @@ export default function ProductList() {
                   testDiv.appendChild(title);
 
                   // Test the first 3 products
-                  const testProducts = products.slice(0, 3);
+                  const testProducts = Array.isArray(products) ? products.slice(0, 3) : [];
 
                   testProducts.forEach((product: Product, index: number) => {
                     console.log(`Testing image for product ${index + 1}:`, product.name);
