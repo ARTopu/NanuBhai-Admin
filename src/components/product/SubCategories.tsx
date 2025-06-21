@@ -228,7 +228,7 @@ export default function SubCategories() {
 
         // Log the complete FormData
         console.log('Complete FormData:');
-        for (let pair of formData.entries()) {
+        for (const pair of formData.entries()) {
           if (pair[0] === 'ImageFile') {
             console.log(pair[0], 'File object:', pair[1]);
             const file = pair[1] as File;
@@ -436,7 +436,7 @@ export default function SubCategories() {
 
       // Log all form data to verify
       console.log('All form data fields:');
-      for (let pair of formData.entries()) {
+      for (const pair of formData.entries()) {
         console.log(`- ${pair[0]}: ${pair[1]}`);
       }
 
@@ -450,7 +450,7 @@ export default function SubCategories() {
 
       // Log the form data entries before sending
       console.log('FormData entries:');
-      for (let pair of formData.entries()) {
+      for (const pair of formData.entries()) {
         console.log(pair[0], pair[1]);
       }
 
@@ -566,7 +566,7 @@ export default function SubCategories() {
 
         // Log the form data
         console.log('Direct FormData entries:');
-        for (let pair of directFormData.entries()) {
+        for (const pair of directFormData.entries()) {
           console.log(`${pair[0]}: ${pair[1]}`);
         }
 
@@ -609,10 +609,14 @@ export default function SubCategories() {
             console.error('Error verifying direct update:', directVerifyError);
           }
         }
-      } catch (directError: any) {
-        console.error('Direct FormData error:', directError.message);
-        if (directError.response) {
-          console.error('Direct FormData error response:', directError.response.data);
+      } catch (directError: unknown) {
+        if (directError && typeof directError === 'object' && 'message' in directError) {
+          console.error('Direct FormData error:', (directError as any).message);
+        } else {
+          console.error('Direct FormData error:', directError);
+        }
+        if (directError && typeof directError === 'object' && 'response' in directError) {
+          console.error('Direct FormData error response:', (directError as any).response.data);
         }
       }
 
@@ -641,7 +645,7 @@ export default function SubCategories() {
 
         // Log the form data
         console.log('FormData entries:');
-        for (let pair of formData.entries()) {
+        for (const pair of formData.entries()) {
           console.log(`${pair[0]}: ${pair[1]}`);
         }
 
@@ -701,13 +705,15 @@ export default function SubCategories() {
             );
 
             console.log('CategoryId-only FormData update response:', categoryFormDataResponse.data);
-          } catch (categoryUpdateError: any) {
-            console.error('Error in categoryId-only update:', categoryUpdateError.message);
-            if (categoryUpdateError.response) {
-              console.error('CategoryId-only update error response:', categoryUpdateError.response.data);
-
-              // If we get a 404, the endpoint might not exist
-              if (categoryUpdateError.response.status === 404) {
+          } catch (categoryUpdateError: unknown) {
+            if (categoryUpdateError && typeof categoryUpdateError === 'object' && 'message' in categoryUpdateError) {
+              console.error('Error in categoryId-only update:', (categoryUpdateError as any).message);
+            } else {
+              console.error('Error in categoryId-only update:', categoryUpdateError);
+            }
+            if (categoryUpdateError && typeof categoryUpdateError === 'object' && 'response' in categoryUpdateError) {
+              console.error('CategoryId-only update error response:', (categoryUpdateError as any).response.data);
+              if ((categoryUpdateError as any).response.status === 404) {
                 console.warn('The UpdateCategory endpoint might not exist. This is a backend issue.');
               }
             }
@@ -743,17 +749,25 @@ export default function SubCategories() {
                 console.error(`Could not find subcategory with ID ${currentSubCategory.id} in the response`);
               }
             }
-          } catch (error: any) {
-            console.error('Error verifying update:', error);
-            if (error.response) {
-              console.error('Verification error response:', error.response.data);
+          } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'message' in error) {
+              console.error('Error verifying update:', (error as any).message);
+            } else {
+              console.error('Error verifying update:', error);
+            }
+            if (error && typeof error === 'object' && 'response' in error) {
+              console.error('Verification error response:', (error as any).response.data);
             }
           }
         }
-      } catch (formDataError: any) {
-        console.error('FormData error:', formDataError.message);
-        if (formDataError.response) {
-          console.error('FormData error response:', formDataError.response.data);
+      } catch (formDataError: unknown) {
+        if (formDataError && typeof formDataError === 'object' && 'message' in formDataError) {
+          console.error('FormData error:', (formDataError as any).message);
+        } else {
+          console.error('FormData error:', formDataError);
+        }
+        if (formDataError && typeof formDataError === 'object' && 'response' in formDataError) {
+          console.error('FormData error response:', (formDataError as any).response.data);
         }
       }
 
@@ -763,7 +777,7 @@ export default function SubCategories() {
           console.log('Trying with XMLHttpRequest as a last resort...');
 
           // Create a new promise to handle the XMLHttpRequest
-          const xmlHttpRequestPromise = new Promise<any>((resolve, reject) => {
+          const xmlHttpRequestPromise = new Promise<unknown>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
 
             // Create a new FormData object
@@ -814,45 +828,46 @@ export default function SubCategories() {
           const xhrResponse = await xmlHttpRequestPromise;
           console.log('XMLHttpRequest response:', xhrResponse);
 
-          if (xhrResponse && xhrResponse.succeeded) {
-            responseData = xhrResponse;
-            success = true;
-            console.log('XMLHttpRequest succeeded!');
+          if (xhrResponse && typeof xhrResponse === 'object' && 'succeeded' in xhrResponse) {
+            if ((xhrResponse as any).succeeded) {
+              responseData = xhrResponse;
+              success = true;
+              console.log('XMLHttpRequest succeeded!');
 
-            // Verify the update by fetching all subcategories
-            try {
-              console.log('Verifying XMLHttpRequest update by fetching all subcategories...');
-              const allSubCategoriesResponse = await axios.get('https://localhost:7293/api/SubCategory/GetAll');
-              console.log('XMLHttpRequest verification response:', allSubCategoriesResponse.data);
+              // Verify the update by fetching all subcategories
+              try {
+                console.log('Verifying XMLHttpRequest update by fetching all subcategories...');
+                const allSubCategoriesResponse = await axios.get('https://localhost:7293/api/SubCategory/GetAll');
+                console.log('XMLHttpRequest verification response:', allSubCategoriesResponse.data);
 
-              if (allSubCategoriesResponse.data && allSubCategoriesResponse.data.succeeded && allSubCategoriesResponse.data.data) {
-                const allSubCategories = allSubCategoriesResponse.data.data;
+                if (allSubCategoriesResponse.data && allSubCategoriesResponse.data.succeeded && allSubCategoriesResponse.data.data) {
+                  const allSubCategories = allSubCategoriesResponse.data.data;
 
-                // Find our updated subcategory
-                const updatedSubCategory = allSubCategories.find((sc: SubCategory) => sc.id === currentSubCategory.id);
+                  // Find our updated subcategory
+                  const updatedSubCategory = allSubCategories.find((sc: SubCategory) => sc.id === currentSubCategory.id);
 
-                if (updatedSubCategory) {
-                  console.log('Found our updated subcategory from XMLHttpRequest:', updatedSubCategory);
-                  console.log('CategoryId in XMLHttpRequest verification:', updatedSubCategory.categoryId);
+                  if (updatedSubCategory) {
+                    console.log('Found our updated subcategory from XMLHttpRequest:', updatedSubCategory);
+                    console.log('CategoryId in XMLHttpRequest verification:', updatedSubCategory.categoryId);
 
-                  if (updatedSubCategory.categoryId !== categoryIdNum) {
-                    console.warn(`XMLHttpRequest verification shows categoryId is still ${updatedSubCategory.categoryId} instead of ${categoryIdNum}`);
+                    if (updatedSubCategory.categoryId !== categoryIdNum) {
+                      console.warn(`XMLHttpRequest verification shows categoryId is still ${updatedSubCategory.categoryId} instead of ${categoryIdNum}`);
+                    } else {
+                      console.log('XMLHttpRequest verification confirms categoryId was updated correctly!');
+                    }
                   } else {
-                    console.log('XMLHttpRequest verification confirms categoryId was updated correctly!');
+                    console.error(`Could not find subcategory with ID ${currentSubCategory.id} in the XMLHttpRequest response`);
                   }
-                } else {
-                  console.error(`Could not find subcategory with ID ${currentSubCategory.id} in the XMLHttpRequest response`);
                 }
-              }
-            } catch (error: any) {
-              console.error('Error verifying XMLHttpRequest update:', error);
-              if (error.response) {
-                console.error('XMLHttpRequest verification error response:', error.response.data);
+              } catch (error: unknown) {
+                if (error && typeof error === 'object' && 'response' in error) {
+                  console.error('XMLHttpRequest verification error response:', (error as any).response.data);
+                }
               }
             }
           }
-        } catch (xhrError) {
-          console.error('XMLHttpRequest error:', xhrError);
+        } catch (error) {
+          console.error('Error with XMLHttpRequest:', error);
         }
       }
 
@@ -967,12 +982,15 @@ export default function SubCategories() {
 
       await fetchSubCategories();
       closeModal();
-    } catch (err: any) {
-      console.error('Error updating subcategory:', err);
-      if (err.response) {
-        console.error('Error response:', err.response.data);
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        console.error('Error response:', (err as any).response.data);
       }
-      setEditError(`Failed to update subcategory: ${err.message || 'Unknown error'}`);
+      if (err && typeof err === 'object' && 'message' in err) {
+        setEditError(`Failed to update subcategory: ${(err as any).message || 'Unknown error'}`);
+      } else {
+        setEditError('Failed to update subcategory: Unknown error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -1024,12 +1042,16 @@ export default function SubCategories() {
             'Failed to delete subcategory';
         setDeleteError(errorMessage);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting subcategory:', err);
-      if (err.response) {
-        console.error('Error response:', err.response.data);
+      if (err && typeof err === 'object' && 'response' in err) {
+        console.error('Error response:', (err as any).response.data);
       }
-      setDeleteError(`Failed to delete subcategory: ${err.message || 'Unknown error'}`);
+      if (err && typeof err === 'object' && 'message' in err) {
+        setDeleteError(`Failed to delete subcategory: ${(err as any).message || 'Unknown error'}`);
+      } else {
+        setDeleteError('Failed to delete subcategory: Unknown error');
+      }
     } finally {
       setIsDeleting(false);
     }
