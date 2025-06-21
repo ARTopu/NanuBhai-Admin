@@ -1,16 +1,7 @@
 import axios from 'axios';
 
-// Try different URLs to find one that works
-const API_BASE_URLS = [
-  'http://localhost:4000/api/Category',  // Standard HTTP
-  'https://localhost:4000/api/Category', // HTTPS version
-  'http://127.0.0.1:4000/api/Category',  // Using IP instead of localhost
-  'http://localhost:4000/api/category',  // Lowercase version
-  'http://localhost:4000/api/categories' // Plural version
-];
-
-// Start with the first URL
-let API_BASE_URL = API_BASE_URLS[0];
+// API base URL for categories
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/Category`;
 
 // Function to test all URLs and find one that works
 async function findWorkingURL() {

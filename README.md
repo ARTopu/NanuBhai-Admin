@@ -160,6 +160,66 @@ A major update focused on Next.js 15 implementation and comprehensive redesign.
 - Enhanced multiselect functionality
 - Added default layout component
 
+## Deployment to Vercel
+
+### Prerequisites for Deployment
+- A backend API server deployed and accessible
+- Environment variables configured
+
+### Method 1: Deploy from Git Repository
+
+1. Push your code to a Git repository (GitHub, GitLab, or Bitbucket)
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "New Project"
+4. Import your repository
+5. Configure environment variables:
+   - `NEXT_PUBLIC_API_URL`: Your production API URL (e.g., `https://your-api.com/api`)
+6. Deploy!
+
+### Method 2: Deploy using Vercel CLI
+
+1. Install Vercel CLI:
+```bash
+npm i -g vercel
+```
+
+2. Login to Vercel:
+```bash
+vercel login
+```
+
+3. Deploy:
+```bash
+vercel
+```
+
+4. Follow the prompts and set your environment variables
+
+### Environment Variables
+
+Create a `.env.local` file with:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+```
+
+For production, update this to your deployed backend URL.
+
+## Backend API Requirements
+
+This dashboard requires a backend API with the following endpoints:
+
+### Products
+- `GET /api/Product/GetAll` - Get all products
+- `POST /api/Product/Create` - Create a new product
+- `PUT /api/Product/Update` - Update a product
+- `DELETE /api/Product/Delete` - Delete a product
+
+### Categories
+- `GET /api/Category/GetAll` - Get all categories
+- `POST /api/Category/Create` - Create a new category
+- `PUT /api/Category/Update` - Update a category
+- `DELETE /api/Category/Delete` - Delete a category
+
 ## License
 
 TailAdmin Next.js Free Version is released under the MIT License.

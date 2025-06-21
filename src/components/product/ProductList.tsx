@@ -754,8 +754,9 @@ export default function ProductList() {
     // If the URL starts with a slash, remove it
     const cleanUrl = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
 
-    // Otherwise, prepend the backend URL
-    const fullUrl = `http://localhost:4000/${cleanUrl}`;
+    // Get the base URL from environment variables
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
+    const fullUrl = `${baseUrl}/${cleanUrl}`;
     console.log('Final formatted URL:', fullUrl);
     return fullUrl;
   };

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base URL for products
-const API_BASE_URL = 'http://localhost:4000/api/Product';
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/Product`;
 
 // Interface for API response
 interface ApiResponse {
