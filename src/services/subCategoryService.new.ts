@@ -14,7 +14,7 @@ export interface SubCategory {
 }
 
 // Helper function to transform response data
-const transformSubCategory = (subCategory: any): SubCategory => {
+const transformSubCategory = (subCategory: SubCategory): SubCategory => {
   return {
     ...subCategory,
     imageUrl: getFullImageUrl(subCategory.imageUrl)
@@ -32,7 +32,7 @@ export const subCategoryService = {
       }
       
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching subcategories:', error);
       throw error;
     }
@@ -48,7 +48,7 @@ export const subCategoryService = {
       }
       
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error fetching subcategory ${id}:`, error);
       throw error;
     }
@@ -66,7 +66,7 @@ export const subCategoryService = {
       }
       
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error fetching subcategories for category ${categoryId}:`, error);
       throw error;
     }
@@ -76,7 +76,7 @@ export const subCategoryService = {
     try {
       // Log the form data for debugging
       console.log('Creating subcategory with form data:');
-      for (let pair of formData.entries()) {
+      for (const pair of formData.entries()) {
         console.log(pair[0], pair[1]);
       }
 
@@ -96,7 +96,7 @@ export const subCategoryService = {
       }
       
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating subcategory:', error);
       throw error;
     }
@@ -106,7 +106,7 @@ export const subCategoryService = {
     try {
       // Log the form data for debugging
       console.log(`Updating subcategory ${id} with form data:`);
-      for (let pair of formData.entries()) {
+      for (const pair of formData.entries()) {
         console.log(pair[0], pair[1]);
       }
 
@@ -126,7 +126,7 @@ export const subCategoryService = {
       }
       
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error updating subcategory ${id}:`, error);
       throw error;
     }
@@ -136,7 +136,7 @@ export const subCategoryService = {
     try {
       console.log(`Deleting subcategory with ID ${id}`);
       return await axios.delete<ApiResponse<null>>(ENDPOINTS.SUBCATEGORY_BY_ID(id));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error deleting subcategory ${id}:`, error);
       throw error;
     }

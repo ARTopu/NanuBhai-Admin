@@ -35,7 +35,7 @@ export const subCategoryService = {
 
   async updateSubCategory(id: number, formData: FormData) {
     // Extract data from FormData to create a JSON object
-    const subCategoryData: any = {
+    const subCategoryData: Record<string, unknown> = {
       id: id,
       name: formData.get('Name') || '',
       description: formData.get('Description') || '',
@@ -80,10 +80,17 @@ export const subCategoryService = {
       }
 
       return jsonResponse;
-    } catch (error) {
-      console.error('Error in updateSubCategory:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error updating subcategory:', (error as { message?: string }).message);
+      } else {
+        console.error('Error updating subcategory:', error);
+      }
+      if (error && typeof error === 'object' && 'response' in error) {
+        const resp = (error as { response?: { data?: unknown } }).response;
+        if (resp) {
+          console.error('Error response:', resp.data);
+        }
       }
       throw error;
     }

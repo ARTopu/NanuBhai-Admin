@@ -6,7 +6,7 @@ const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:400
 // Interface for API response
 interface ApiResponse {
   succeeded: boolean;
-  data: any;
+  data: unknown;
   message: string;
   errors: string[] | null;
 }
@@ -34,7 +34,7 @@ export const productService = {
       });
 
       // Log the products data specifically
-      if (response.data && response.data.succeeded) {
+      if (response.data && response.data.succeeded && Array.isArray(response.data.data)) {
         console.log(`Successfully retrieved ${response.data.data.length} products`);
         console.log('First product sample:', response.data.data[0]);
       } else {
@@ -42,14 +42,17 @@ export const productService = {
       }
 
       return response;
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      if (error.response) {
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response) {
         console.error('Error response:', {
           status: error.response.status,
           statusText: error.response.statusText,
           data: error.response.data
         });
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error fetching products:', (error as { message?: string }).message);
+      } else {
+        console.error('Error fetching products:', error);
       }
       throw error;
     }
@@ -84,21 +87,24 @@ export const productService = {
 
       console.log('Create product response:', response.data);
       return response;
-    } catch (error: any) {
-      console.error('Error creating product:', error.message);
-      if (error.response) {
-        console.error('Error response:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data
-        });
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error creating product:', (error as { message?: string }).message);
+      } else {
+        console.error('Error creating product:', error);
+      }
+      if (error && typeof error === 'object' && 'response' in error) {
+        const resp = (error as { response?: { status?: number; data?: unknown } }).response;
+        if (resp) {
+          console.error('Error response:', resp.data);
+        }
       }
       throw error;
     }
   },
 
   // Create product with JSON
-  async createProductJson(productData: any) {
+  async createProductJson(productData: Record<string, unknown>) {
     console.log('Creating product with JSON data:', productData);
 
     try {
@@ -110,9 +116,9 @@ export const productService = {
       });
 
       return response;
-    } catch (error: any) {
-      console.error('Error creating product:', error.message);
-      if (error.response) {
+    } catch (error: unknown) {
+      console.error('Error creating product:', error);
+      if (axios.isAxiosError(error) && error.response) {
         console.error('Error response:', error.response.data);
       }
       throw error;
@@ -145,12 +151,8 @@ export const productService = {
       return response;
     } catch (error) {
       console.error('Error updating product:', error);
-      if (error.response) {
-        console.error('Error response:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data
-        });
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error response:', error.response.data);
       }
       throw error;
     }
@@ -169,12 +171,8 @@ export const productService = {
       return response;
     } catch (error) {
       console.error('Error deleting product:', error);
-      if (error.response) {
-        console.error('Error response:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data
-        });
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error response:', error.response.data);
       }
       throw error;
     }

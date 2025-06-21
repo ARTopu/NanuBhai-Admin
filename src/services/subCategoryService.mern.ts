@@ -38,7 +38,7 @@ export const subCategoryService = {
   async createSubCategory(formData: FormData) {
     // Log the form data for debugging
     console.log('Creating subcategory with form data:');
-    for (let pair of formData.entries()) {
+    for (const pair of formData.entries()) {
       console.log(pair[0], pair[1]);
     }
 
@@ -52,7 +52,7 @@ export const subCategoryService = {
   async updateSubCategory(id: string, formData: FormData) {
     // Log the form data for debugging
     console.log(`Updating subcategory ${id} with form data:`);
-    for (let pair of formData.entries()) {
+    for (const pair of formData.entries()) {
       console.log(pair[0], pair[1]);
     }
 
