@@ -10,7 +10,6 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import Image from "next/image";
-import Pagination from "../tables/Pagination";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
@@ -53,6 +52,7 @@ interface EditFormState {
   stockStatus: string;
   freeDelivery: string;
   categoryId: string;
+  imageUrl: string; // Added to match usage
 }
 
 const categoryOptions = [
@@ -68,503 +68,683 @@ const categoryOptions = [
 const tableData: Product[] = [
   // Page 1 (1-15)
   {
-    id: 1,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Professional Cake Mold Set",
-      productId: "BKG-1001",
-    },
-    category: "Baking Molds",
-    price: "$49.99",
-    stock: 0,  // Changed to 0 for out of stock
+    id: "1",
+    name: "Professional Cake Mold Set",
+    description: "",
+    price: 49.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 0,
+    stockStatus: "outOfStock",
+    freeDelivery: "no",
+    categoryId: "Baking Molds",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 2,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Silicone Baking Mat",
-      productId: "BKG-1002",
-    },
-    category: "Baking Tools",
-    price: "$19.99",
-    stock: 42,
+    id: "2",
+    name: "Silicone Baking Mat",
+    description: "",
+    price: 19.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 42,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 3,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Pastry Piping Set",
-      productId: "BKG-1003",
-    },
-    category: "Decorating Tools",
-    price: "$34.99",
-    stock: 0,  // Changed to 0 for out of stock
+    id: "3",
+    name: "Pastry Piping Set",
+    description: "",
+    price: 34.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 0,
+    stockStatus: "outOfStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 4,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Digital Kitchen Scale",
-      productId: "BKG-1004",
-    },
-    category: "Measuring Tools",
-    price: "$29.99",
-    stock: 30,
+    id: "4",
+    name: "Digital Kitchen Scale",
+    description: "",
+    price: 29.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 30,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Measuring Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 5,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Stand Mixer",
-      productId: "BKG-1005",
-    },
-    category: "Appliances",
-    price: "$299.99",
-    stock: 0,  // Changed to 0 for out of stock
+    id: "5",
+    name: "Stand Mixer",
+    description: "",
+    price: 299.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 0,
+    stockStatus: "outOfStock",
+    freeDelivery: "no",
+    categoryId: "Appliances",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 6,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cookie Cutter Set",
-      productId: "BKG-1006",
-    },
-    category: "Baking Tools",
-    price: "$15.99",
-    stock: 50,
+    id: "6",
+    name: "Cookie Cutter Set",
+    description: "",
+    price: 15.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 50,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 7,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Turntable",
-      productId: "BKG-1007",
-    },
-    category: "Decorating Tools",
-    price: "$24.99",
-    stock: 20,
+    id: "7",
+    name: "Cake Turntable",
+    description: "",
+    price: 24.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 20,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 8,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Bread Loaf Pan",
-      productId: "BKG-1008",
-    },
-    category: "Baking Molds",
-    price: "$16.99",
-    stock: 35,
+    id: "8",
+    name: "Bread Loaf Pan",
+    description: "",
+    price: 16.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 35,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Molds",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 9,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Measuring Cups Set",
-      productId: "BKG-1009",
-    },
-    category: "Measuring Tools",
-    price: "$19.99",
-    stock: 40,
+    id: "9",
+    name: "Measuring Cups Set",
+    description: "",
+    price: 19.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 40,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Measuring Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 10,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Rolling Pin",
-      productId: "BKG-1010",
-    },
-    category: "Baking Tools",
-    price: "$12.99",
-    stock: 45,
+    id: "10",
+    name: "Rolling Pin",
+    description: "",
+    price: 12.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 45,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 11,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Decorating Kit",
-      productId: "BKG-1011",
-    },
-    category: "Decorating Tools",
-    price: "$39.99",
-    stock: 15,
+    id: "11",
+    name: "Cake Decorating Kit",
+    description: "",
+    price: 39.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 15,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 12,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Muffin Pan",
-      productId: "BKG-1012",
-    },
-    category: "Baking Molds",
-    price: "$22.99",
-    stock: 25,
+    id: "12",
+    name: "Muffin Pan",
+    description: "",
+    price: 22.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 25,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Molds",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 13,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Hand Mixer",
-      productId: "BKG-1013",
-    },
-    category: "Appliances",
-    price: "$49.99",
-    stock: 12,
+    id: "13",
+    name: "Hand Mixer",
+    description: "",
+    price: 49.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 12,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Appliances",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 14,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cooling Rack",
-      productId: "BKG-1014",
-    },
-    category: "Baking Tools",
-    price: "$14.99",
-    stock: 30,
+    id: "14",
+    name: "Cooling Rack",
+    description: "",
+    price: 14.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 30,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 15,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Fondant Tools Set",
-      productId: "BKG-1015",
-    },
-    category: "Decorating Tools",
-    price: "$29.99",
-    stock: 20,
+    id: "15",
+    name: "Fondant Tools Set",
+    description: "",
+    price: 29.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 20,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
 
   // Page 2 (16-30)
   {
-    id: 16,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Silicone Spatula Set",
-      productId: "BKG-1016",
-    },
-    category: "Baking Tools",
-    price: "$18.99",
-    stock: 28,
+    id: "16",
+    name: "Silicone Spatula Set",
+    description: "",
+    price: 18.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 28,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 17,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Bundt Cake Pan",
-      productId: "BKG-1017",
-    },
-    category: "Baking Molds",
-    price: "$27.99",
-    stock: 15,
+    id: "17",
+    name: "Bundt Cake Pan",
+    description: "",
+    price: 27.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 15,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Molds",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 18,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Food Processor",
-      productId: "BKG-1018",
-    },
-    category: "Appliances",
-    price: "$199.99",
-    stock: 10,
+    id: "18",
+    name: "Food Processor",
+    description: "",
+    price: 199.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 10,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Appliances",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 19,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Decorating Tips Set",
-      productId: "BKG-1019",
-    },
-    category: "Decorating Tools",
-    price: "$32.99",
-    stock: 22,
+    id: "19",
+    name: "Decorating Tips Set",
+    description: "",
+    price: 32.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 22,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 20,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Digital Timer",
-      productId: "BKG-1020",
-    },
-    category: "Measuring Tools",
-    price: "$14.99",
-    stock: 35,
+    id: "20",
+    name: "Digital Timer",
+    description: "",
+    price: 14.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 35,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Measuring Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 21,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Springform Pan",
-      productId: "BKG-1021",
-    },
-    category: "Baking Molds",
-    price: "$23.99",
-    stock: 18,
+    id: "21",
+    name: "Springform Pan",
+    description: "",
+    price: 23.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 18,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Molds",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 22,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Pastry Brush Set",
-      productId: "BKG-1022",
-    },
-    category: "Baking Tools",
-    price: "$12.99",
-    stock: 40,
+    id: "22",
+    name: "Pastry Brush Set",
+    description: "",
+    price: 12.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 40,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 23,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Leveler",
-      productId: "BKG-1023",
-    },
-    category: "Decorating Tools",
-    price: "$16.99",
-    stock: 25,
+    id: "23",
+    name: "Cake Leveler",
+    description: "",
+    price: 16.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 25,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 24,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Mixing Bowls Set",
-      productId: "BKG-1024",
-    },
-    category: "Baking Tools",
-    price: "$34.99",
-    stock: 30,
+    id: "24",
+    name: "Mixing Bowls Set",
+    description: "",
+    price: 34.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 30,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 25,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Icing Smoother",
-      productId: "BKG-1025",
-    },
-    category: "Decorating Tools",
-    price: "$9.99",
-    stock: 45,
+    id: "25",
+    name: "Icing Smoother",
+    description: "",
+    price: 9.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 45,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 26,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cookie Sheet Set",
-      productId: "BKG-1026",
-    },
-    category: "Baking Tools",
-    price: "$28.99",
-    stock: 20,
+    id: "26",
+    name: "Cookie Sheet Set",
+    description: "",
+    price: 28.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 20,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 27,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Fondant Rolling Pin",
-      productId: "BKG-1027",
-    },
-    category: "Decorating Tools",
-    price: "$19.99",
-    stock: 15,
+    id: "27",
+    name: "Fondant Rolling Pin",
+    description: "",
+    price: 19.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 15,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 28,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Carrier",
-      productId: "BKG-1028",
-    },
-    category: "Storage",
-    price: "$39.99",
-    stock: 12,
+    id: "28",
+    name: "Cake Carrier",
+    description: "",
+    price: 39.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 12,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Storage",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 29,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Measuring Spoons",
-      productId: "BKG-1029",
-    },
-    category: "Measuring Tools",
-    price: "$8.99",
-    stock: 50,
+    id: "29",
+    name: "Measuring Spoons",
+    description: "",
+    price: 8.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 50,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Measuring Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 30,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Piping Bags Set",
-      productId: "BKG-1030",
-    },
-    category: "Decorating Tools",
-    price: "$15.99",
-    stock: 35,
+    id: "30",
+    name: "Piping Bags Set",
+    description: "",
+    price: 15.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 35,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
 
   // Page 3 (31-45)
   {
-    id: 31,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Stand",
-      productId: "BKG-1031",
-    },
-    category: "Display",
-    price: "$45.99",
-    stock: 15,
+    id: "31",
+    name: "Cake Stand",
+    description: "",
+    price: 45.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 15,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Display",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 32,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cookie Stamps Set",
-      productId: "BKG-1032",
-    },
-    category: "Baking Tools",
-    price: "$24.99",
-    stock: 20,
+    id: "32",
+    name: "Cookie Stamps Set",
+    description: "",
+    price: 24.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 20,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 33,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cupcake Carrier",
-      productId: "BKG-1033",
-    },
-    category: "Storage",
-    price: "$29.99",
-    stock: 18,
+    id: "33",
+    name: "Cupcake Carrier",
+    description: "",
+    price: 29.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 18,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Storage",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 34,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Dough Scraper",
-      productId: "BKG-1034",
-    },
-    category: "Baking Tools",
-    price: "$7.99",
-    stock: 40,
+    id: "34",
+    name: "Dough Scraper",
+    description: "",
+    price: 7.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 40,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 35,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Stencils Set",
-      productId: "BKG-1035",
-    },
-    category: "Decorating Tools",
-    price: "$17.99",
-    stock: 25,
+    id: "35",
+    name: "Cake Stencils Set",
+    description: "",
+    price: 17.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 25,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 36,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Bread Proofing Basket",
-      productId: "BKG-1036",
-    },
-    category: "Baking Tools",
-    price: "$21.99",
-    stock: 15,
+    id: "36",
+    name: "Bread Proofing Basket",
+    description: "",
+    price: 21.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 15,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 37,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Pop Maker",
-      productId: "BKG-1037",
-    },
-    category: "Appliances",
-    price: "$39.99",
-    stock: 12,
+    id: "37",
+    name: "Cake Pop Maker",
+    description: "",
+    price: 39.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 12,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Appliances",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 38,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Pastry Mat",
-      productId: "BKG-1038",
-    },
-    category: "Baking Tools",
-    price: "$19.99",
-    stock: 30,
+    id: "38",
+    name: "Pastry Mat",
+    description: "",
+    price: 19.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 30,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 39,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Icing Color Set",
-      productId: "BKG-1039",
-    },
-    category: "Decorating Tools",
-    price: "$16.99",
-    stock: 35,
+    id: "39",
+    name: "Icing Color Set",
+    description: "",
+    price: 16.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 35,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 40,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cookie Cooling Grid",
-      productId: "BKG-1040",
-    },
-    category: "Baking Tools",
-    price: "$13.99",
-    stock: 28,
+    id: "40",
+    name: "Cookie Cooling Grid",
+    description: "",
+    price: 13.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 28,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 41,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Board Set",
-      productId: "BKG-1041",
-    },
-    category: "Display",
-    price: "$11.99",
-    stock: 40,
+    id: "41",
+    name: "Cake Board Set",
+    description: "",
+    price: 11.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 40,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Display",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 42,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Fondant Smoother",
-      productId: "BKG-1042",
-    },
-    category: "Decorating Tools",
-    price: "$8.99",
-    stock: 45,
+    id: "42",
+    name: "Fondant Smoother",
+    description: "",
+    price: 8.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 45,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 43,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Pie Dish Set",
-      productId: "BKG-1043",
-    },
-    category: "Baking Molds",
-    price: "$32.99",
-    stock: 20,
+    id: "43",
+    name: "Pie Dish Set",
+    description: "",
+    price: 32.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 20,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Molds",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 44,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Cake Dowels Set",
-      productId: "BKG-1044",
-    },
-    category: "Decorating Tools",
-    price: "$9.99",
-    stock: 50,
+    id: "44",
+    name: "Cake Dowels Set",
+    description: "",
+    price: 9.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 50,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Decorating Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
   {
-    id: 45,
-    product: {
-      image: "/images/product/product-default.png",
-      name: "Baking Paper Set",
-      productId: "BKG-1045",
-    },
-    category: "Baking Tools",
-    price: "$6.99",
-    stock: 60,
+    id: "45",
+    name: "Baking Paper Set",
+    description: "",
+    price: 6.99,
+    previousPrice: null,
+    discountPercentage: 0,
+    savedAmount: 0,
+    quantity: 60,
+    stockStatus: "inStock",
+    freeDelivery: "no",
+    categoryId: "Baking Tools",
+    imageUrl: "/images/product/product-default.png",
+    images: [],
   },
 ];
 
@@ -590,6 +770,7 @@ export default function ProductList() {
     stockStatus: "inStock",
     freeDelivery: "no",
     categoryId: "",
+    imageUrl: "", // Added to match usage
   });
 
   const [imagePreview, setImagePreview] = useState("");
@@ -644,7 +825,7 @@ export default function ProductList() {
 
             // Check all products for image issues
             console.log('Checking all products for image issues...');
-            productsResponse.data.data.forEach((product, index) => {
+            productsResponse.data.data.forEach((product: Product, index: number) => {
               if (!product.imageUrl && (!product.images || !Array.isArray(product.images) || product.images.length === 0)) {
                 console.warn(`Product #${index + 1} (${product.name}) has no images`);
               }
@@ -681,9 +862,10 @@ export default function ProductList() {
         } else {
           console.error('Failed to fetch categories:', categoriesResponse.data?.message);
         }
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setError("An error occurred while fetching data: " + (err.message || 'Unknown error'));
+      } catch (err: unknown) {
+        const error = err as Error | { message?: string };
+        console.error("Error fetching data:", error);
+        setError("An error occurred while fetching data: " + (error && typeof error === 'object' && 'message' in error && error.message ? error.message : 'Unknown error'));
       } finally {
         setIsLoading(false);
       }
@@ -708,7 +890,7 @@ export default function ProductList() {
   // Default image path
   const DEFAULT_IMAGE = "/images/product/product-default.png";
 
-  // Get image URL for product - simplified to match category list approach
+  // Get image URL for product - simplified to match category list
   const getProductImage = (product: Product | null | undefined): string => {
     // Check if product is valid
     if (!product) {
@@ -736,29 +918,17 @@ export default function ProductList() {
   };
 
   // Utility function to get the correct image URL - same as in category list
-  const getImageUrl = (imageUrl: any): string => {
+  const getImageUrl = (imageUrl: string | null | undefined): string => {
     console.log('Processing image URL:', imageUrl, 'Type:', typeof imageUrl);
-
-    // Check if imageUrl is null, undefined, or not a string
     if (!imageUrl || typeof imageUrl !== 'string') {
       console.warn('Invalid image URL:', imageUrl);
       return DEFAULT_IMAGE;
     }
-
-    // If the URL already includes http:// or https://, return it as is
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       console.log('URL already has http/https, using as is');
       return imageUrl;
     }
-
-    // If the URL starts with a slash, remove it
-    const cleanUrl = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-
-    // Get the base URL from environment variables
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
-    const fullUrl = `${baseUrl}/${cleanUrl}`;
-    console.log('Final formatted URL:', fullUrl);
-    return fullUrl;
+    return DEFAULT_IMAGE;
   };
 
   // Handle edit button click
@@ -805,7 +975,7 @@ export default function ProductList() {
         // Use FileReader result for preview
         const previewUrl = reader.result as string;
         setImagePreview(previewUrl);
-        setEditForm({ ...editForm, image: previewUrl });
+        setEditForm({ ...editForm, imageUrl: previewUrl });
       };
 
       reader.onerror = () => {
@@ -942,7 +1112,6 @@ export default function ProductList() {
           headers: { 'Accept': 'application/json, text/plain, */*' },
           mode: 'cors',
           cache: 'no-cache',
-          timeout: 5000
         });
 
         console.log(`Response from ${endpoint}:`, response.status);
@@ -1060,9 +1229,10 @@ export default function ProductList() {
       } else {
         setError("Failed to refresh products: " + (productsResponse.data?.message || 'Unknown error'));
       }
-    } catch (err: any) {
-      console.error("Error refreshing data:", err);
-      setError("An error occurred while refreshing data: " + (err.message || 'Unknown error'));
+    } catch (err: unknown) {
+      const error = err as Error | { message?: string };
+      console.error("Error refreshing data:", error);
+      setError("An error occurred while refreshing data: " + (error && typeof error === 'object' && 'message' in error && error.message ? error.message : 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
@@ -1109,7 +1279,11 @@ export default function ProductList() {
                       alert(`Status: ${response.status}\nCheck console for full response`);
                     } catch (err) {
                       console.error('Error:', err);
-                      alert(`Error: ${err.message}`);
+                      if (err instanceof Error) {
+                        alert(`Error: ${err.message}`);
+                      } else {
+                        alert('An unknown error occurred');
+                      }
                     }
                   }}
                   className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
@@ -1126,7 +1300,11 @@ export default function ProductList() {
                       alert(`Status: ${response.status}\nCheck console for full response`);
                     } catch (err) {
                       console.error('Error:', err);
-                      alert(`Error: ${err.message}`);
+                      if (err instanceof Error) {
+                        alert(`Error: ${err.message}`);
+                      } else {
+                        alert('An unknown error occurred');
+                      }
                     }
                   }}
                   className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
@@ -1141,7 +1319,11 @@ export default function ProductList() {
                       alert(`Status: ${response.status}\nServer is reachable`);
                     } catch (err) {
                       console.error('Error:', err);
-                      alert(`Error: ${err.message}`);
+                      if (err instanceof Error) {
+                        alert(`Error: ${err.message}`);
+                      } else {
+                        alert('An unknown error occurred');
+                      }
                     }
                   }}
                   className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
@@ -1158,7 +1340,11 @@ export default function ProductList() {
                       alert(`Status: ${response.status}\nCheck console for full response`);
                     } catch (err) {
                       console.error('Error:', err);
-                      alert(`Error: ${err.message}`);
+                      if (err instanceof Error) {
+                        alert(`Error: ${err.message}`);
+                      } else {
+                        alert('An unknown error occurred');
+                      }
                     }
                   }}
                   className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
@@ -1224,7 +1410,11 @@ export default function ProductList() {
                 }
               } catch (err) {
                 console.error('Error fetching products:', err);
-                alert(`Error fetching products: ${err.message || 'Unknown error'}`);
+                if (err instanceof Error) {
+                  alert(`Error fetching products: ${err.message}`);
+                } else {
+                  alert('Error fetching products: Unknown error');
+                }
               }
             }}
             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
@@ -1280,7 +1470,7 @@ export default function ProductList() {
                   // Test the first 3 products
                   const testProducts = products.slice(0, 3);
 
-                  testProducts.forEach((product, index) => {
+                  testProducts.forEach((product: Product, index: number) => {
                     console.log(`Testing image for product ${index + 1}:`, product.name);
 
                     // Create a container for this product
@@ -1365,7 +1555,11 @@ export default function ProductList() {
                 }
               } catch (err) {
                 console.error('Error testing image URLs:', err);
-                alert(`Error testing image URLs: ${err.message || 'Unknown error'}`);
+                if (err instanceof Error) {
+                  alert(`Error testing image URLs: ${err.message}`);
+                } else {
+                  alert('Error testing image URLs: Unknown error');
+                }
               }
             }}
             className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
@@ -1781,7 +1975,7 @@ export default function ProductList() {
                   onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value)})}
                   className="w-full"
                   min="0"
-                  step="0.01"
+                  step={0.01}
                 />
               </div>
 
@@ -1793,7 +1987,7 @@ export default function ProductList() {
                   onChange={(e) => setEditForm({...editForm, previousPrice: e.target.value ? parseFloat(e.target.value) : null})}
                   className="w-full"
                   min="0"
-                  step="0.01"
+                  step={0.01}
                   placeholder="Optional"
                 />
               </div>

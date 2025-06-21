@@ -32,7 +32,7 @@ interface Category {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  subCategories: any[];
+  subCategories: unknown[];
 }
 
 interface EditFormState {
@@ -243,29 +243,25 @@ Also check the browser console (F12) for more detailed error messages.
       setCategoryImage(null);
       (e.target as HTMLFormElement).reset();
 
-    } catch (err: any) {
-      console.error('Error creating category:', err);
-
-      // Provide more detailed error information
+    } catch (err: unknown) {
+      const error = err as Error | { response?: { data?: { message?: string; error?: string; errors?: string[] }, status?: number }, message?: string };
+      console.error('Error creating category:', error);
       let errorMessage = 'Failed to create category';
-
-      if (err.response) {
-        console.error('Error response status:', err.response.status);
-        console.error('Error response data:', err.response.data);
-
-        if (err.response.data) {
-          if (err.response.data.message) {
-            errorMessage = err.response.data.message;
-          } else if (err.response.data.error) {
-            errorMessage = err.response.data.error;
-          } else if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
-            errorMessage = err.response.data.errors.join(', ');
+      if (typeof error === 'object' && error && 'response' in error && error.response) {
+        console.error('Error response status:', error.response.status);
+        console.error('Error response data:', error.response.data);
+        if (error.response.data) {
+          if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          } else if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
+            errorMessage = error.response.data.errors.join(', ');
           }
         }
-      } else if (err.message) {
-        errorMessage = `Network error: ${err.message}`;
+      } else if (typeof error === 'object' && error && 'message' in error && error.message) {
+        errorMessage = `Network error: ${error.message}`;
       }
-
       setFormError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -390,12 +386,13 @@ Also check the browser console (F12) for more detailed error messages.
             'Failed to update category';
         setEditError(errorMessage);
       }
-    } catch (error: any) {
-      console.error('API call failed:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
+    } catch (error: unknown) {
+      const err = error as Error | { response?: { data?: { message?: string }, status?: number }, message?: string };
+      console.error('API call failed:', err);
+      if (err && typeof err === 'object' && 'response' in err && err.response) {
+        console.error('Error response:', err.response.data);
       }
-      setEditError(`Failed to update category: ${error.message || 'Unknown error'}`);
+      setEditError(`Failed to update category: ${err && typeof err === 'object' && 'message' in err && err.message ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -445,12 +442,13 @@ Also check the browser console (F12) for more detailed error messages.
             'Failed to delete category';
         setDeleteError(errorMessage);
       }
-    } catch (err: any) {
-      console.error('Error deleting category:', err);
-      if (err.response) {
-        console.error('Error response:', err.response.data);
+    } catch (err: unknown) {
+      const error = err as Error | { response?: { data?: { errors?: string[], message?: string }, status?: number }, message?: string };
+      console.error('Error deleting category:', error);
+      if (error && typeof error === 'object' && 'response' in error && error.response) {
+        console.error('Error response:', error.response.data);
       }
-      setDeleteError(`Failed to delete category: ${err.message || 'Unknown error'}`);
+      setDeleteError(`Failed to delete category: ${error.message || 'Unknown error'}`);
     } finally {
       setIsDeleting(false);
     }
@@ -825,14 +823,14 @@ Also check the browser console (F12) for more detailed error messages.
             <Label>Category Image</Label>
             <div className="mt-2 flex flex-col items-center justify-center gap-3">
               {isClient ? (
-                <img
+                <Image
                   src={imagePreview || getImageUrl(editForm.imageUrl)}
                   alt={editForm.name}
+                  width={128}
+                  height={128}
                   className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                 />
-              ) : (
-                <div className="h-32 w-32 bg-gray-200 rounded-lg border border-gray-200 dark:border-gray-700"></div>
-              )}
+              ) : null}
               <label className="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 <span className="text-sm text-gray-600 dark:text-gray-300">Change Image</span>
                 <input

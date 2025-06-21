@@ -43,22 +43,19 @@ export default function TestCategory() {
       // Reset form
       setName("");
       setDescription("");
-    } catch (err: any) {
-      console.error('Error creating category:', err);
-
+    } catch (err: unknown) {
+      const error = err as Error | { response?: { data?: { message?: string }, status?: number }, message?: string };
+      console.error('Error creating category:', error);
       let errorMessage = 'Failed to create category';
-
-      if (err.response) {
-        console.error('Error response:', err.response.data);
-        console.error('Status:', err.response.status);
-
-        if (err.response.data && err.response.data.message) {
-          errorMessage = err.response.data.message;
+      if (typeof error === 'object' && error && 'response' in error && error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Status:', error.response.status);
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
         }
-      } else if (err.message) {
-        errorMessage = err.message;
+      } else if (typeof error === 'object' && error && 'message' in error && error.message) {
+        errorMessage = error.message;
       }
-
       setError(errorMessage);
 
       // Try alternative approach with JSON
@@ -82,8 +79,9 @@ export default function TestCategory() {
         // Reset form
         setName("");
         setDescription("");
-      } catch (jsonErr: any) {
-        console.error('JSON approach also failed:', jsonErr);
+      } catch (jsonErr: unknown) {
+        const error = jsonErr as Error | { message?: string };
+        console.error('JSON approach also failed:', error);
       }
     } finally {
       setIsLoading(false);
